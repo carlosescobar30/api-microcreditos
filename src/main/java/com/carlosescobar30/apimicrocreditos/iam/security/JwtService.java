@@ -17,8 +17,8 @@ import java.util.Date;
 public class JwtService {
 
     private final JwtProperties jwtProperties;
-    private Clock clock;
-    private io.jsonwebtoken.Clock jwtClock;
+    private final Clock clock;
+    private final io.jsonwebtoken.Clock jwtClock;
 
     public JwtService (Clock clock, JwtProperties jwtProperties){
 
@@ -36,8 +36,8 @@ public class JwtService {
 
         return Jwts.builder()
                 .subject(userDetails.getUsername())
-                .claim("uId", userDetails.getId())
-                .claim("roles",userDetails.getAuthorities().stream()
+                .claim(JwtAttributes.NAME_CLAIM_USER_ID, userDetails.getId())
+                .claim(JwtAttributes.NAME_CLAIM_ROLES,userDetails.getAuthorities().stream()
                         .map(GrantedAuthority::getAuthority).toList())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(jwtProperties.expiration().toMillis())))

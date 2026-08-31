@@ -52,15 +52,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtService.extractAllClaims(jwt);
 
 
-                List<String> roles = (claims.get("roles", List.class) == null) ?
-                        new ArrayList<>() : new ArrayList<>(claims.get("roles", List.class));
+                List<String> roles = (claims.get(JwtAttributes.NAME_CLAIM_ROLES, List.class) == null) ?
+                        new ArrayList<>() : new ArrayList<>(claims.get(JwtAttributes.NAME_CLAIM_ROLES, List.class));
 
                 List<SimpleGrantedAuthority> authorities = roles.stream()
                         .map(SimpleGrantedAuthority::new).toList();
 
 
                 UserDetails user = new UserDetailsImpl(
-                        claims.get("uId", Long.class),
+                        claims.get(JwtAttributes.NAME_CLAIM_USER_ID, Long.class),
                         claims.getSubject(),
                         null,
                         authorities
