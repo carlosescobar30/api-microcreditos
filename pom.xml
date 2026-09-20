@@ -146,14 +146,6 @@
             <version>0.12.6</version>
             <scope>runtime</scope>
         </dependency>
-        <dependency>
-                <groupId>org.springframework.modulith</groupId>
-                <artifactId>spring-modulith-events-jpa</artifactId>
-        </dependency>
-        <dependency>
-                <groupId>org.springframework.modulith</groupId>
-                <artifactId>spring-modulith-events-jackson</artifactId>
-        </dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers-junit-jupiter</artifactId>
