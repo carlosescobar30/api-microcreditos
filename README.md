@@ -1,0 +1,101 @@
+# API Microcréditos
+
+*[English version](README.en.md)*
+
+Core de una API de microcréditos: registro y autenticación de usuarios, solicitud
+y desembolso de créditos, generación de la tabla de amortización, y recaudo con
+imputación de pagos en cascada.
+
+Proyecto personal, en desarrollo.
+
+## Stack
+
+Java 21 · Spring Boot 4 · Spring Modulith · PostgreSQL · Flyway · Testcontainers · Docker
+
+## Módulos
+
+| Módulo | Responsabilidad |
+|---|---|
+| `iam` | Usuarios, roles, autenticación JWT y rotación de refresh tokens |
+| `operational` | Productos de crédito, originación, cronograma de pagos y recaudo |
+| `common` | Entidad base, manejo de errores y el principal compartido |
+
+Los límites entre módulos los verifica Spring Modulith en un test: `operational`
+solo alcanza `iam` a través de una interfaz publicada, nunca por sus repositorios.
+
+## Flujo del crédito
+
+1. El usuario consulta el catálogo de productos.
+2. Solicita uno. El sistema lo rechaza si no tiene la identidad verificada, si
+   está en mora, si su score no alcanza, o si ya tiene otra solicitud en curso.
+3. Si pasa, el crédito queda pre-aprobado.
+4. Al aceptarlo se genera la tabla de amortización completa.
+5. Registra un pago contra el crédito, no contra una cuota concreta.
+6. Al confirmarse, el pago se imputa en cascada: primero mora, luego intereses,
+   luego capital, y lo que sobre pasa a las cuotas siguientes.
+
+Un job diario mueve las cuotas a vigente o vencida, causa intereses de mora y
+actualiza el estado del crédito.
+
+## Decisiones de diseño
+
+- **Los refresh tokens se guardan hasheados** (SHA-256). Un volcado de la base de
+  datos no permite suplantar a nadie.
+- **La rotación se serializa con un lock pesimista**, con una ventana de gracia
+  para que dos peticiones simultáneas legítimas no se confundan con un ataque.
+  Reutilizar un token fuera de esa ventana revoca todos los del usuario.
+- **Amortización alemana** (capital fijo, cuota decreciente). La última cuota
+  absorbe el residuo del redondeo para que el capital cuadre exacto.
+- **Un pago no pertenece a una cuota.** Se reparte entre conceptos y cuotas, y
+  cada tramo queda registrado como una imputación con su concepto.
+- **Idempotencia en dos niveles**: un flag en el pago y una restricción única
+  sobre el código de transacción, para que un reintento no se aplique dos veces.
+- Los módulos se referencian entre sí por un UUID público, nunca por la llave
+  primaria interna.
+- Los errores se devuelven como `ProblemDetail` (RFC 7807) con un código estable.
+
+## Cómo levantarlo
+
+```bash
+cp .env.example .env     # credenciales de la base de datos y JWT_KEY (Base64, 256 bits)
+docker compose up -d --build
+```
+
+Levanta PostgreSQL y la aplicación. La API queda en `http://localhost:8080` y la
+documentación en `/swagger-ui.html`.
+
+Para correr la aplicación desde el IDE, levanta solo la base de datos con
+`docker compose up -d db` y apunta el datasource a `localhost:5432`.
+
+## Tests
+
+```bash
+./mvnw verify            # requiere Docker
+```
+
+48 tests sobre el módulo `iam`, en tres niveles:
+
+- **Unitarios** — firma y parseo de JWT, hasheo de tokens y cada rama de la
+  lógica de rotación, incluido el borde exacto del periodo de gracia.
+- **Integración** (Testcontainers) — las queries contra Postgres real, que la
+  revocación sobreviva a la excepción, y dos rotaciones concurrentes del mismo
+  token resolviendo en exactamente un token nuevo.
+- **Slice web** — el contrato HTTP de `/auth` y la cadena de seguridad: sin
+  token, token expirado, token falsificado y acceso por rol.
+
+## Limitaciones conocidas
+
+- `operational` todavía no tiene tests.
+- Sin rate limiting en el login.
+- Sin pasarela de pagos real. `/payment/validate` simula la confirmación del
+  proveedor.
+- Sin abono a capital con re-amortización: pagar de más cubre cuotas futuras.
+- El excedente se registra como imputación pero no es todavía un saldo a favor
+  utilizable.
+- Los jobs usan el reloj del sistema en vez del `Clock` inyectado, lo que los
+  hace difíciles de testear de forma determinista.
+
+## Historial
+
+- [#1 — Módulo IAM](https://github.com/carlosescobar30/api-microcreditos/pull/1)
+- [#2 — Módulo Operational](https://github.com/carlosescobar30/api-microcreditos/pull/2)
