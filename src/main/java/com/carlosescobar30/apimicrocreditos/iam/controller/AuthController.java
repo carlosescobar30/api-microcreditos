@@ -4,7 +4,7 @@ import com.carlosescobar30.apimicrocreditos.iam.dto.LoginRequestDTO;
 import com.carlosescobar30.apimicrocreditos.iam.dto.RefreshRequestDTO;
 import com.carlosescobar30.apimicrocreditos.iam.dto.RegisterRequestDTO;
 import com.carlosescobar30.apimicrocreditos.iam.dto.TokenResponseDTO;
-import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

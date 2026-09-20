@@ -8,7 +8,7 @@ import com.carlosescobar30.apimicrocreditos.iam.domain.enums.RefreshTokenStatus;
 import com.carlosescobar30.apimicrocreditos.iam.internals.RefreshHashToken;
 import com.carlosescobar30.apimicrocreditos.iam.internals.RefreshTokenCreated;
 import com.carlosescobar30.apimicrocreditos.iam.repository.RefreshTokenRepository;
-import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

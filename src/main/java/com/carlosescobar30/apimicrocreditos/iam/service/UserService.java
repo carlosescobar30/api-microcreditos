@@ -2,13 +2,15 @@ package com.carlosescobar30.apimicrocreditos.iam.service;
 
 import com.carlosescobar30.apimicrocreditos.common.exception.conflict.EmailConflictException;
 import com.carlosescobar30.apimicrocreditos.common.exception.conflict.UsernameConflictException;
-import com.carlosescobar30.apimicrocreditos.common.exception.notfound.ResourceNotFoundException;
+import com.carlosescobar30.apimicrocreditos.common.exception.not_found.ResourceNotFoundException;
 import com.carlosescobar30.apimicrocreditos.iam.domain.Role;
 import com.carlosescobar30.apimicrocreditos.iam.domain.User;
 import com.carlosescobar30.apimicrocreditos.iam.domain.enums.RoleName;
 import com.carlosescobar30.apimicrocreditos.iam.dto.RegisterRequestDTO;
 import com.carlosescobar30.apimicrocreditos.iam.repository.UserRepository;
-import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsMapper;
+import com.carlosescobar30.apimicrocreditos.iam.service.contract.UserScoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +29,7 @@ public class UserService {
     private final UserRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final RoleService roleService;
+    private final UserScoreService userScoreService;
 
 
     @Transactional
@@ -55,6 +58,7 @@ public class UserService {
                 .passwordHash(passwordEncoder.encode(req.password()))
                 .email(req.email())
                 .roles(defaultRole)
+                .score(userScoreService.getUserScore())
                 .isIdentityVerified(false)
                 .birthDate(req.birthDate())
                 .build();
@@ -76,7 +80,7 @@ public class UserService {
         User user = repository.findWithRolesById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        return UserDetailsImpl.build(user);
+        return UserDetailsMapper.build(user);
     }
 
 }

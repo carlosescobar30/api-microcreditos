@@ -1,6 +1,7 @@
 package com.carlosescobar30.apimicrocreditos.iam.security;
 
 import com.carlosescobar30.apimicrocreditos.common.exception.ErrorCode;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.FilterChain;

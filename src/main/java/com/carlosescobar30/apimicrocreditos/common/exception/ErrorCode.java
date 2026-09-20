@@ -10,6 +10,7 @@ public enum ErrorCode {
 
     // BAD_REQUEST 400
     VALIDATION_ERROR ("VALIDATION_ERROR", HttpStatus.BAD_REQUEST, "One or more fields are invalid"),
+    ACTION_NOT_PERMITTED("ACTION_NOT_PERMITTED", HttpStatus.BAD_REQUEST,"The resource does not permit the requested action"),
 
     //UNAUTHORIZED 401
     REFRESH_TOKEN_INVALID("REFRESH_TOKEN_INVALID", HttpStatus.UNAUTHORIZED, "The refresh token sent is invalid"),

@@ -1,6 +1,6 @@
 package com.carlosescobar30.apimicrocreditos.iam.service;
 
-import com.carlosescobar30.apimicrocreditos.common.exception.notfound.ResourceNotFoundException;
+import com.carlosescobar30.apimicrocreditos.common.exception.not_found.ResourceNotFoundException;
 import com.carlosescobar30.apimicrocreditos.iam.domain.Role;
 import com.carlosescobar30.apimicrocreditos.iam.domain.enums.RoleName;
 import com.carlosescobar30.apimicrocreditos.iam.repository.RoleRepository;

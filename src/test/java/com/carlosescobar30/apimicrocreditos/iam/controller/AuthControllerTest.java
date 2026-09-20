@@ -11,7 +11,7 @@ import com.carlosescobar30.apimicrocreditos.iam.dto.TokenResponseDTO;
 import com.carlosescobar30.apimicrocreditos.iam.security.JwtAccessDeniedHandler;
 import com.carlosescobar30.apimicrocreditos.iam.security.JwtAuthenticationEntryPoint;
 import com.carlosescobar30.apimicrocreditos.iam.security.JwtService;
-import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.service.AuthService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

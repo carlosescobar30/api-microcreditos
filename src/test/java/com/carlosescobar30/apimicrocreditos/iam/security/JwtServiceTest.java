@@ -1,5 +1,6 @@
 package com.carlosescobar30.apimicrocreditos.iam.security;
 
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.configuration.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
