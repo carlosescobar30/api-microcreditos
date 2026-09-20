@@ -1,4 +1,4 @@
-package com.carlosescobar30.apimicrocreditos.common.exception.notfound;
+package com.carlosescobar30.apimicrocreditos.common.exception.not_found;
 
 import com.carlosescobar30.apimicrocreditos.common.exception.ApiExceptionBase;
 import com.carlosescobar30.apimicrocreditos.common.exception.ErrorCode;

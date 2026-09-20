@@ -1,26 +1,17 @@
 package com.carlosescobar30.apimicrocreditos.iam.security;
 
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.domain.User;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Getter
-@AllArgsConstructor
-public class UserDetailsImpl implements UserDetails {
+public class UserDetailsMapper {
 
-    private final Long id;
-    private final String username;
-    private final String password;
-    private final Collection<? extends GrantedAuthority> authorities;
-
+    private UserDetailsMapper() {
+    }
 
     public static UserDetailsImpl build (User user) {
 
@@ -37,22 +28,4 @@ public class UserDetailsImpl implements UserDetails {
 
     }
 
-
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-
-    }
-
-
-    @Override
-    public @Nullable String getPassword() {
-        return password;
-    }
-
-    @Override
-    public String getUsername() {
-        return username;
-    }
 }

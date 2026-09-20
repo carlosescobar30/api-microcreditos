@@ -1,7 +1,7 @@
 package com.carlosescobar30.apimicrocreditos.iam.internals;
 
 
-import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 
 public record RefreshTokenCreated(
         String rawToken,

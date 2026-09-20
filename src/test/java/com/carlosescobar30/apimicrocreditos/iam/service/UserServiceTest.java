@@ -2,13 +2,14 @@ package com.carlosescobar30.apimicrocreditos.iam.service;
 
 import com.carlosescobar30.apimicrocreditos.common.exception.conflict.EmailConflictException;
 import com.carlosescobar30.apimicrocreditos.common.exception.conflict.UsernameConflictException;
-import com.carlosescobar30.apimicrocreditos.common.exception.notfound.ResourceNotFoundException;
+import com.carlosescobar30.apimicrocreditos.common.exception.not_found.ResourceNotFoundException;
 import com.carlosescobar30.apimicrocreditos.iam.domain.Role;
 import com.carlosescobar30.apimicrocreditos.iam.domain.User;
 import com.carlosescobar30.apimicrocreditos.iam.domain.enums.RoleName;
 import com.carlosescobar30.apimicrocreditos.iam.dto.RegisterRequestDTO;
 import com.carlosescobar30.apimicrocreditos.iam.repository.UserRepository;
-import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.iam.service.contract.UserScoreService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,12 +48,14 @@ class UserServiceTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private RoleService roleService;
+    @Mock
+    private UserScoreService userScoreService;
 
     private UserService userService;
 
     @BeforeEach
     void setUp() {
-        this.userService = new UserService(repository, passwordEncoder, roleService);
+        this.userService = new UserService(repository, passwordEncoder, roleService, userScoreService);
     }
 
     @Nested

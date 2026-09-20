@@ -45,6 +45,9 @@ public class User extends EntityBaseClass {
     private Boolean isIdentityVerified;
 
     @Column(nullable = false)
+    private Integer score;
+
+    @Column(nullable = false)
     private LocalDate birthDate;
 
 

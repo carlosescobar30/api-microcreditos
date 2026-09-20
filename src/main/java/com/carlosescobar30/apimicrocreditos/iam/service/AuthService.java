@@ -6,7 +6,7 @@ import com.carlosescobar30.apimicrocreditos.iam.dto.*;
 import com.carlosescobar30.apimicrocreditos.iam.internals.RefreshTokenCreated;
 import com.carlosescobar30.apimicrocreditos.iam.dto.TokenResponseDTO;
 import com.carlosescobar30.apimicrocreditos.iam.security.JwtService;
-import com.carlosescobar30.apimicrocreditos.iam.security.UserDetailsImpl;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;

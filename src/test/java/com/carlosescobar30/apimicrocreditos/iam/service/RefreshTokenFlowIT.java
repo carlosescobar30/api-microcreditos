@@ -201,6 +201,7 @@ class RefreshTokenFlowIT {
                 .email(email)
                 .roles(new HashSet<>())
                 .isIdentityVerified(false)
+                .score(100)
                 .birthDate(LocalDate.of(1990, 1, 1))
                 .build();
     }
