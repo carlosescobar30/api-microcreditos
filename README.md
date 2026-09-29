@@ -48,8 +48,12 @@ actualiza el estado del crédito.
   absorbe el residuo del redondeo para que el capital cuadre exacto.
 - **Un pago no pertenece a una cuota.** Se reparte entre conceptos y cuotas, y
   cada tramo queda registrado como una imputación con su concepto.
-- **Idempotencia en dos niveles**: un flag en el pago y una restricción única
-  sobre el código de transacción, para que un reintento no se aplique dos veces.
+- **Un pago solo sale de `PENDING` una vez.** `PENDING → APPROVED` o
+  `PENDING → DECLINED`; los dos son finales. Repetir la misma validación devuelve
+  el resultado original, y pedir la contraria responde 409.
+- **La validación bloquea el pago y luego su crédito** (`SELECT ... FOR UPDATE`),
+  siempre en ese orden. Dos confirmaciones simultáneas del mismo pago no lo
+  imputan dos veces, y dos pagos del mismo crédito no se pisan las cuotas.
 - Los módulos se referencian entre sí por un UUID público, nunca por la llave
   primaria interna.
 - Los errores se devuelven como `ProblemDetail` (RFC 7807) con un código estable.
@@ -73,19 +77,22 @@ Para correr la aplicación desde el IDE, levanta solo la base de datos con
 ./mvnw verify            # requiere Docker
 ```
 
-48 tests sobre el módulo `iam`, en tres niveles:
+61 tests, en tres niveles:
 
 - **Unitarios** — firma y parseo de JWT, hasheo de tokens y cada rama de la
-  lógica de rotación, incluido el borde exacto del periodo de gracia.
+  lógica de rotación, incluido el borde exacto del periodo de gracia, y cada
+  transición de estado de un pago.
 - **Integración** (Testcontainers) — las queries contra Postgres real, que la
   revocación sobreviva a la excepción, y dos rotaciones concurrentes del mismo
-  token resolviendo en exactamente un token nuevo.
+  token resolviendo en exactamente un token nuevo. En `operational`, dos
+  validaciones concurrentes del mismo pago imputándolo una sola vez, y el saldo
+  del crédito cuadrando con el capital de sus cuotas.
 - **Slice web** — el contrato HTTP de `/auth` y la cadena de seguridad: sin
   token, token expirado, token falsificado y acceso por rol.
 
 ## Limitaciones conocidas
 
-- `operational` todavía no tiene tests.
+- En `operational` solo está cubierta la validación de pagos.
 - Sin rate limiting en el login.
 - Sin pasarela de pagos real. `/payment/validate` simula la confirmación del
   proveedor.

@@ -50,8 +50,13 @@ and updates the loan status.
   installment absorbs the rounding remainder so the principal adds up exactly.
 - **A payment does not belong to an installment.** It is split across concepts
   and installments, and every slice is recorded as an allocation.
-- **Idempotency on two levels**: a flag on the payment and a unique constraint on
-  the transaction code, so a retry cannot be applied twice.
+- **A payment leaves `PENDING` only once.** `PENDING → APPROVED` or
+  `PENDING → DECLINED`; both are final. Repeating the same validation returns the
+  original result, and asking for the opposite one answers 409.
+- **Validation locks the payment and then its loan** (`SELECT ... FOR UPDATE`),
+  always in that order. Two simultaneous confirmations of the same payment do not
+  allocate it twice, and two payments of the same loan do not overwrite each
+  other's installments.
 - Modules reference each other by a public UUID, never by the internal primary
   key.
 - Errors are returned as `ProblemDetail` (RFC 7807) with a stable error code.
@@ -75,19 +80,22 @@ To run the application from your IDE, start the database only with
 ./mvnw verify            # requires Docker
 ```
 
-48 tests covering the `iam` module across three levels:
+61 tests across three levels:
 
 - **Unit** — JWT signing and parsing, token hashing, and every branch of the
-  rotation logic, including the exact grace period boundary.
+  rotation logic, including the exact grace period boundary, and every status
+  transition of a payment.
 - **Integration** (Testcontainers) — the queries against a real Postgres, the
   revocation surviving the exception, and two concurrent rotations of the same
-  token resolving to exactly one new token.
+  token resolving to exactly one new token. In `operational`, two concurrent
+  validations of the same payment allocating it only once, and the loan balance
+  matching the principal left in its installments.
 - **Web slice** — the HTTP contract of `/auth` and the security chain: missing,
   expired and forged tokens, plus role based access.
 
 ## Known limitations
 
-- `operational` has no tests yet.
+- In `operational`, only payment validation is covered.
 - No rate limiting on login.
 - No real payment gateway. `/payment/validate` stands in for the provider
   confirmation.
