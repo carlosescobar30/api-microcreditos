@@ -25,17 +25,20 @@ solo alcanza `iam` a través de una interfaz publicada, nunca por sus repositori
 
 ## Flujo del crédito
 
-1. El usuario consulta el catálogo de productos.
-2. Solicita uno. El sistema lo rechaza si no tiene la identidad verificada, si
+1. Un admin verifica la identidad del usuario
+   (`PATCH /admin/users/{username}/identity-verification`).
+2. El usuario consulta el catálogo de productos.
+3. Solicita uno. El sistema lo rechaza si no tiene la identidad verificada, si
    está en mora, si su score no alcanza, o si ya tiene otra solicitud en curso.
-3. Si pasa, el crédito queda pre-aprobado.
-4. Al aceptarlo se genera la tabla de amortización completa.
-5. Registra un pago contra el crédito, no contra una cuota concreta.
-6. Al confirmarse, el pago se imputa en cascada: primero mora, luego intereses,
-   luego capital, y lo que sobre pasa a las cuotas siguientes.
+4. Si pasa, el crédito queda pre-aprobado. Puede aceptarlo o cancelarlo.
+5. Al aceptarlo se genera la tabla de amortización completa.
+6. Registra un pago contra el crédito, no contra una cuota concreta.
+7. Un admin confirma el pago (`POST /admin/payment/validate`) y se imputa en
+   cascada: primero mora, luego intereses, luego capital, y lo que sobre pasa a
+   las cuotas siguientes.
 
-Un job diario mueve las cuotas a vigente o vencida, causa intereses de mora y
-actualiza el estado del crédito.
+Un job diario, en este orden, mueve las cuotas a vigente o vencida, causa
+intereses de mora y actualiza el estado del crédito.
 
 ## Decisiones de diseño
 
@@ -68,6 +71,10 @@ docker compose up -d --build
 Levanta PostgreSQL y la aplicación. La API queda en `http://localhost:8080` y la
 documentación en `/swagger-ui.html`.
 
+Si `.env` define `ADMIN_USERNAME`, `ADMIN_EMAIL` y `ADMIN_PASSWORD`, al arrancar
+se crea esa cuenta con rol `ADMIN` (si no existe ya). Cambia la contraseña de
+ejemplo antes de desplegar.
+
 Para correr la aplicación desde el IDE, levanta solo la base de datos con
 `docker compose up -d db` y apunta el datasource a `localhost:5432`.
 
@@ -77,7 +84,7 @@ Para correr la aplicación desde el IDE, levanta solo la base de datos con
 ./mvnw verify            # requiere Docker
 ```
 
-61 tests, en tres niveles:
+80 tests, en tres niveles:
 
 - **Unitarios** — firma y parseo de JWT, hasheo de tokens y cada rama de la
   lógica de rotación, incluido el borde exacto del periodo de gracia, y cada
@@ -92,10 +99,10 @@ Para correr la aplicación desde el IDE, levanta solo la base de datos con
 
 ## Limitaciones conocidas
 
-- En `operational` solo está cubierta la validación de pagos.
+- En `operational` falta cubrir la amortización y la imputación en cascada.
 - Sin rate limiting en el login.
-- Sin pasarela de pagos real. `/payment/validate` simula la confirmación del
-  proveedor.
+- Sin pasarela de pagos real. `/admin/payment/validate` simula la
+  confirmación del proveedor.
 - Sin abono a capital con re-amortización: pagar de más cubre cuotas futuras.
 - El excedente se registra como imputación pero no es todavía un saldo a favor
   utilizable.

@@ -25,19 +25,22 @@ Module boundaries are enforced by a Spring Modulith test: `operational` reaches
 
 ## Loan lifecycle
 
-1. The user browses the product catalog.
-2. They request a product. It is rejected if their identity is unverified, if
+1. An admin verifies the user's identity
+   (`PATCH /admin/users/{username}/identity-verification`).
+2. The user browses the product catalog.
+3. They request a product. It is rejected if their identity is unverified, if
    they are in arrears, if their credit score is too low, or if they already
    have a request in progress.
-3. If it passes, the loan is pre-approved.
-4. Accepting it materialises the full amortization schedule.
-5. The user registers a payment against the loan, not against a specific
+4. If it passes, the loan is pre-approved. The user can accept or cancel it.
+5. Accepting it materialises the full amortization schedule.
+6. The user registers a payment against the loan, not against a specific
    installment.
-6. Once confirmed, the payment is allocated in cascade: arrears first, then
-   interest, then principal, spilling over into later installments.
+7. An admin confirms the payment (`POST /admin/payment/validate`) and it is
+   allocated in cascade: arrears first, then interest, then principal, spilling
+   over into later installments.
 
-A daily job moves installments to current or overdue, accrues penalty interest
-and updates the loan status.
+A daily job, in this order, moves installments to current or overdue, accrues
+penalty interest and updates the loan status.
 
 ## Design decisions
 
@@ -71,6 +74,10 @@ docker compose up -d --build
 This starts PostgreSQL and the application. The API is available at
 `http://localhost:8080` and the documentation at `/swagger-ui.html`.
 
+If `.env` defines `ADMIN_USERNAME`, `ADMIN_EMAIL` and `ADMIN_PASSWORD`, that
+account is created with the `ADMIN` role on startup (unless it already exists).
+Change the sample password before deploying.
+
 To run the application from your IDE, start the database only with
 `docker compose up -d db` and point the datasource at `localhost:5432`.
 
@@ -80,7 +87,7 @@ To run the application from your IDE, start the database only with
 ./mvnw verify            # requires Docker
 ```
 
-61 tests across three levels:
+80 tests across three levels:
 
 - **Unit** — JWT signing and parsing, token hashing, and every branch of the
   rotation logic, including the exact grace period boundary, and every status
@@ -95,10 +102,10 @@ To run the application from your IDE, start the database only with
 
 ## Known limitations
 
-- In `operational`, only payment validation is covered.
+- In `operational`, amortization and cascade allocation are not covered yet.
 - No rate limiting on login.
-- No real payment gateway. `/payment/validate` stands in for the provider
-  confirmation.
+- No real payment gateway. `/admin/payment/validate` stands in for the
+  provider confirmation.
 - No principal prepayment with re-amortization: overpaying covers upcoming
   installments instead.
 - Surplus is recorded as an allocation but is not yet a usable credit balance.
