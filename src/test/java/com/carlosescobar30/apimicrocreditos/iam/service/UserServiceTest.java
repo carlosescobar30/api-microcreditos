@@ -150,6 +150,76 @@ class UserServiceTest {
         }
     }
 
+    @Nested
+    @DisplayName("Tests for the verifyIdentity method")
+    class VerifyIdentityTests {
+
+        @Test
+        void theUserIsMarkedAsVerified() {
+
+            User user = existingUser();
+            when(repository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
+
+            userService.verifyIdentity(USERNAME);
+
+            assertThat(user.getIsIdentityVerified()).isTrue();
+        }
+
+        @Test
+        void aResourceNotFoundExceptionIsThrownWhenTheUserDoesNotExist() {
+
+            when(repository.findByUsername(USERNAME)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> userService.verifyIdentity(USERNAME))
+                    .isInstanceOf(ResourceNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Tests for the createAdminIfMissing method")
+    class CreateAdminIfMissingTests {
+
+        @Test
+        void theAdminIsCreatedVerifiedWithTheAdminRoleAndAnEncodedPassword() {
+
+            when(repository.existsByUsername(USERNAME)).thenReturn(false);
+            when(repository.existsByEmail(EMAIL)).thenReturn(false);
+            when(passwordEncoder.encode(RAW_PASSWORD)).thenReturn(ENCODED_PASSWORD);
+            when(roleService.getRole(RoleName.ROLE_ADMIN)).thenReturn(new Role(2L, RoleName.ROLE_ADMIN));
+            when(repository.save(any(User.class))).thenAnswer(call -> call.getArgument(0));
+
+            userService.createAdminIfMissing(USERNAME, EMAIL, RAW_PASSWORD);
+
+            User admin = savedUser();
+            assertThat(admin.getRoles()).extracting(Role::getName).containsExactly(RoleName.ROLE_ADMIN);
+            assertThat(admin.getIsIdentityVerified()).isTrue();
+            assertThat(admin.getPasswordHash()).isEqualTo(ENCODED_PASSWORD);
+        }
+
+        @Test
+        void nothingIsCreatedWhenTheUsernameIsAlreadyTaken() {
+
+            when(repository.existsByUsername(USERNAME)).thenReturn(true);
+
+            userService.createAdminIfMissing(USERNAME, EMAIL, RAW_PASSWORD);
+
+            verify(repository, never()).save(any());
+            verify(passwordEncoder, never()).encode(any());
+        }
+
+        @Test
+        void nothingIsCreatedWhenTheEmailIsAlreadyTaken() {
+
+            when(repository.existsByUsername(USERNAME)).thenReturn(false);
+            when(repository.existsByEmail(EMAIL)).thenReturn(true);
+
+            userService.createAdminIfMissing(USERNAME, EMAIL, RAW_PASSWORD);
+
+            verify(repository, never()).save(any());
+            verify(passwordEncoder, never()).encode(any());
+        }
+    }
+
     private void givenAnAvailableUsernameAndEmail() {
 
         when(repository.existsByUsername(USERNAME)).thenReturn(false);

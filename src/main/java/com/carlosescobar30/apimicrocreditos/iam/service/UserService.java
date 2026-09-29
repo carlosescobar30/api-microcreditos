@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -65,6 +66,46 @@ public class UserService {
 
         User userCreated = repository.save(user);
         log.info("User created for userId: {}", userCreated.getId());
+
+    }
+
+    @Transactional
+    public void verifyIdentity (String username){
+
+        User user = repository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        user.setIsIdentityVerified(true);
+        log.info("Identity verified for userId: {}", user.getId());
+
+    }
+
+    @Transactional
+    public void createAdminIfMissing (String username, String email, String rawPassword){
+
+        if (repository.existsByUsername(username) || repository.existsByEmail(email)){
+
+            log.info("Admin account not created: the username or email is already registered");
+            return;
+
+        }
+
+        Set<Role> adminRole = new HashSet<>();
+        adminRole.add(roleService.getRole(RoleName.ROLE_ADMIN));
+        User admin = User.builder()
+                .name("Admin")
+                .lastName("Admin")
+                .username(username)
+                .passwordHash(passwordEncoder.encode(rawPassword))
+                .email(email)
+                .roles(adminRole)
+                .score(0)
+                .isIdentityVerified(true)
+                .birthDate(LocalDate.of(1970, 1, 1))
+                .build();
+
+        User adminCreated = repository.save(admin);
+        log.info("Admin account created for userId: {}", adminCreated.getId());
 
     }
 
