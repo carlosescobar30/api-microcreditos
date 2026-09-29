@@ -5,7 +5,9 @@ import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.Loan
 import com.carlosescobar30.apimicrocreditos.operational.dto.LoanInfoDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -32,6 +34,10 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
             "l.payday, l.startDate, l.endDate) FROM Loan l WHERE l.userReference = :userReference ")
     Page<LoanInfoDTO> findAllByUserReference(@Param("userReference") UUID userReference, Pageable pageable);
     Optional<Loan> findByPublicId (UUID loanReference);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT l FROM Loan l WHERE l.id = :id")
+    Optional<Loan> findByIdForUpdate(@Param("id") Long id);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("""

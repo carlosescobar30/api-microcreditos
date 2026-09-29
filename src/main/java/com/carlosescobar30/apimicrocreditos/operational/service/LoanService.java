@@ -162,6 +162,14 @@ public class LoanService {
     }
 
     @Transactional
+    public Loan getOneEntityForUpdate(Long loanId){
+
+        return repository.findByIdForUpdate(loanId)
+                .orElseThrow(() -> new ResourceNotFoundException("The loan does not exist"));
+
+    }
+
+    @Transactional
     public void updateLoanStatus(){
 
         repository.updateStatusToInArrears();

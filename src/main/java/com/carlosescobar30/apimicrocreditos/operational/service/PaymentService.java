@@ -1,5 +1,7 @@
 package com.carlosescobar30.apimicrocreditos.operational.service;
 
+import com.carlosescobar30.apimicrocreditos.common.exception.bad_request.ActionNotPermitted;
+import com.carlosescobar30.apimicrocreditos.common.exception.conflict.PaymentAlreadyProcessedException;
 import com.carlosescobar30.apimicrocreditos.common.exception.not_found.ResourceNotFoundException;
 import com.carlosescobar30.apimicrocreditos.operational.attribute.RoundingAttributes;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
@@ -35,7 +37,8 @@ public class PaymentService {
     public PaymentInfoDTO pay(UserDetailsImpl userDetails, UUID loanReference, PayRequestDTO payRequest){
 
         Loan loan = loanService.getOneEntity(loanReference);
-        verifyOwnership(userDetails, loan);
+        UUID userReference = userAdapter.userInfo(userDetails.getId()).userReference();
+        verifyOwnership(userReference, loan);
         BigDecimal roundingAmount = payRequest.amount().setScale(
                 RoundingAttributes.SCALE_DEFAULT,
                 RoundingAttributes.ROUNDING_DOWN
@@ -47,52 +50,58 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentInfoDetailsDTO validateTransaction(UserDetailsImpl userDetails, TransactionValidationDTO transactionValidation){
+    public PaymentInfoDetailsDTO validateTransaction(UUID userReference, TransactionValidationDTO transactionValidation){
 
-        Payment payment = repository.findByTransactionCode(transactionValidation.transactionCode())
-                .orElseThrow(() -> new ResourceNotFoundException("The payment does not exist"));
+        TransactionStatus requestedStatus = transactionValidation.status();
 
-        verifyOwnership(userDetails, payment.getLoan());
+        if (requestedStatus == TransactionStatus.PENDING){
 
-        switch (transactionValidation.status()){
-
-            case DECLINED ->{
-
-
-
-                payment.setStatus(TransactionStatus.DECLINED);
-                return paymentDTOFactory.createDetails(payment, Collections.emptyList());
-
-            }
-
-            case APPROVED -> {
-
-                if (payment.getApplied() == true){
-
-                    List<AllocationDetailsDTO> details = paymentAllocationService.getAllByPayment(payment);
-                    return paymentDTOFactory.createDetails(payment, details);
-
-                }
-
-                payment.setStatus(TransactionStatus.APPROVED);
-                payment.setApplied(true);
-                List<AllocationDetailsDTO> details = paymentAllocationService.allocatePayment(payment);
-                return paymentDTOFactory.createDetails(payment, details);
-
-            }
-
-            default -> {
-                return paymentDTOFactory.createDetails(payment, Collections.emptyList());
-            }
-
+            throw new ActionNotPermitted("A payment can only be validated as APPROVED or DECLINED");
 
         }
 
+        Payment payment = repository.findByTransactionCodeForUpdate(transactionValidation.transactionCode())
+                .orElseThrow(() -> new ResourceNotFoundException("The payment does not exist"));
+
+        Loan loan = loanService.getOneEntityForUpdate(payment.getLoan().getId());
+        verifyOwnership(userReference, loan);
+
+        if (!payment.isPending()){
+
+            if (payment.getStatus() == requestedStatus){
+
+                return currentResult(payment);
+
+            }
+
+            throw new PaymentAlreadyProcessedException(payment.getStatus().name());
+
+        }
+
+        if (requestedStatus == TransactionStatus.APPROVED){
+
+            payment.approve();
+            List<AllocationDetailsDTO> details = paymentAllocationService.allocatePayment(payment);
+            return paymentDTOFactory.createDetails(payment, details);
+
+        }
+
+        payment.decline();
+        return paymentDTOFactory.createDetails(payment, Collections.emptyList());
+
     }
 
-    private void verifyOwnership(UserDetailsImpl userDetails, Loan loan){
+    private PaymentInfoDetailsDTO currentResult(Payment payment){
 
-        UUID userReference = userAdapter.userInfo(userDetails.getId()).userReference();
+        List<AllocationDetailsDTO> details = payment.getStatus() == TransactionStatus.APPROVED
+                ? paymentAllocationService.getAllByPayment(payment)
+                : Collections.emptyList();
+
+        return paymentDTOFactory.createDetails(payment, details);
+
+    }
+
+    private void verifyOwnership(UUID userReference, Loan loan){
 
         if (!loan.getUserReference().equals(userReference)){
 

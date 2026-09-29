@@ -27,6 +27,7 @@ public enum ErrorCode {
     USERNAME_ALREADY_EXISTS("USERNAME_ALREADY_EXISTS", HttpStatus.CONFLICT, "This username is not available"),
     EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS", HttpStatus.CONFLICT, "This email is not available"),
     DATA_CONFLICT ("DATA_CONFLICT", HttpStatus.CONFLICT,"The insertion could not be completed due to data conflicts"),
+    PAYMENT_ALREADY_PROCESSED("PAYMENT_ALREADY_PROCESSED", HttpStatus.CONFLICT, "The payment has already been processed and its status cannot change"),
 
     //INTERNAL_SERVER_ERROR 500
     INTERNAL_ERROR_SERVER ("INTERNAL_ERROR_SERVER", HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error on the server");

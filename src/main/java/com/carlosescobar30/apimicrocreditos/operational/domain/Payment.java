@@ -1,6 +1,7 @@
 package com.carlosescobar30.apimicrocreditos.operational.domain;
 
 import com.carlosescobar30.apimicrocreditos.common.domain.EntityBaseClass;
+import com.carlosescobar30.apimicrocreditos.common.exception.conflict.PaymentAlreadyProcessedException;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.FinancialMethod;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.TransactionStatus;
 import jakarta.persistence.*;
@@ -42,5 +43,36 @@ public class Payment extends EntityBaseClass {
     @Column(nullable = false)
     private Boolean applied;
 
+
+    public boolean isPending() {
+
+        return status == TransactionStatus.PENDING;
+
+    }
+
+    public void approve() {
+
+        requirePending();
+        this.status = TransactionStatus.APPROVED;
+        this.applied = true;
+
+    }
+
+    public void decline() {
+
+        requirePending();
+        this.status = TransactionStatus.DECLINED;
+
+    }
+
+    private void requirePending() {
+
+        if (!isPending()) {
+
+            throw new PaymentAlreadyProcessedException(status.name());
+
+        }
+
+    }
 
 }
