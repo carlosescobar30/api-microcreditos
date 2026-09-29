@@ -50,7 +50,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentInfoDetailsDTO validateTransaction(UUID userReference, TransactionValidationDTO transactionValidation){
+    public PaymentInfoDetailsDTO validateTransaction(TransactionValidationDTO transactionValidation){
 
         TransactionStatus requestedStatus = transactionValidation.status();
 
@@ -63,8 +63,7 @@ public class PaymentService {
         Payment payment = repository.findByTransactionCodeForUpdate(transactionValidation.transactionCode())
                 .orElseThrow(() -> new ResourceNotFoundException("The payment does not exist"));
 
-        Loan loan = loanService.getOneEntityForUpdate(payment.getLoan().getId());
-        verifyOwnership(userReference, loan);
+        loanService.getOneEntityForUpdate(payment.getLoan().getId());
 
         if (!payment.isPending()){
 

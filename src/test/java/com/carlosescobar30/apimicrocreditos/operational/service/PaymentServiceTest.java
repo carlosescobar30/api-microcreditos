@@ -101,21 +101,6 @@ class PaymentServiceTest {
 
             verifyNoInteractions(paymentAllocationService);
         }
-
-        @Test
-        void aPaymentOfSomeoneElsesLoanIsNotFoundAndStaysPending() {
-
-            Payment payment = paymentWithStatus(TransactionStatus.PENDING);
-            givenLockedPaymentAndLoan(payment);
-
-            assertThatThrownBy(() -> paymentService.validateTransaction(UUID.randomUUID(),
-                    new TransactionValidationDTO(TRANSACTION_CODE, TransactionStatus.APPROVED)))
-                    .isInstanceOf(ResourceNotFoundException.class);
-
-            assertThat(payment.getStatus()).isEqualTo(TransactionStatus.PENDING);
-            assertThat(payment.getApplied()).isFalse();
-            verifyNoInteractions(paymentAllocationService);
-        }
     }
 
     @Nested
@@ -229,7 +214,7 @@ class PaymentServiceTest {
 
     private PaymentInfoDetailsDTO validate(TransactionStatus status) {
 
-        return paymentService.validateTransaction(USER_REFERENCE, new TransactionValidationDTO(TRANSACTION_CODE, status));
+        return paymentService.validateTransaction(new TransactionValidationDTO(TRANSACTION_CODE, status));
     }
 
     private Payment givenOwnedPayment(TransactionStatus status) {

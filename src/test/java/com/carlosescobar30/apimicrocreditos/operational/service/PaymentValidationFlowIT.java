@@ -175,8 +175,6 @@ class PaymentValidationFlowIT {
         }
     }
 
-    // If a payment is allocated twice, or over a stale copy of the installments,
-    // the loan balance and the principal left in its installments stop matching.
     private void assertThatLoanBalanceMatchesItsInstallments() {
 
         BigDecimal principalPaid = paymentAllocationRepository.findAll().stream()
@@ -225,13 +223,13 @@ class PaymentValidationFlowIT {
 
     private PaymentInfoDetailsDTO approve(String transactionCode) {
 
-        return paymentService.validateTransaction(USER_REFERENCE,
+        return paymentService.validateTransaction(
                 new TransactionValidationDTO(transactionCode, TransactionStatus.APPROVED));
     }
 
     private PaymentInfoDetailsDTO decline(String transactionCode) {
 
-        return paymentService.validateTransaction(USER_REFERENCE,
+        return paymentService.validateTransaction(
                 new TransactionValidationDTO(transactionCode, TransactionStatus.DECLINED));
     }
 
