@@ -85,9 +85,10 @@ public class LoanInstallmentService {
     }
 
     @Transactional(readOnly = true)
-    public InstallmentsInfoDTO getOne (UUID loanInstallmentReference){
+    public InstallmentsInfoDTO getOne (UserDetailsImpl userDetails, UUID loanInstallmentReference){
 
-        return repository.findBySInstallmentReference(loanInstallmentReference)
+        UUID userReference = userAdapter.userInfo(userDetails.getId()).userReference();
+        return repository.findByInstallmentReferenceAndUserReference(loanInstallmentReference, userReference)
                 .orElseThrow(() -> new ResourceNotFoundException("Installment not found"));
 
     }
@@ -209,4 +210,4 @@ public class LoanInstallmentService {
 
 
 
-}
+}

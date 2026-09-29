@@ -39,8 +39,10 @@ public interface LoanInstallmentRepository extends JpaRepository<LoanInstallment
             "li.paymentDate" +
             ") " +
             "FROM LoanInstallment li " +
-            "WHERE li.publicId = :installmentReference ")
-    Optional<InstallmentsInfoDTO> findBySInstallmentReference(@Param("installmentReference") UUID installmentReference);
+            "WHERE li.publicId = :installmentReference " +
+            "AND li.loan.userReference = :userReference")
+    Optional<InstallmentsInfoDTO> findByInstallmentReferenceAndUserReference(@Param("installmentReference") UUID installmentReference,
+                                                                             @Param("userReference") UUID userReference);
 
     @Query("SELECT new com.carlosescobar30.apimicrocreditos.operational.dto.InstallmentsInfoDTO(" +
             "li.publicId," +

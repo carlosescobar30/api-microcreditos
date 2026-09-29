@@ -21,10 +21,10 @@ public class LoanInstallmentController {
 
 
     @GetMapping("/{loanInstallmentReference}")
-    public ResponseEntity<InstallmentsInfoDTO> getOne (
-            @PathVariable("loanInstallmentReference") UUID loanInstallmentReference){
+    public ResponseEntity<InstallmentsInfoDTO> getOne (@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                       @PathVariable("loanInstallmentReference") UUID loanInstallmentReference){
 
-        InstallmentsInfoDTO installment = loanInstallmentService.getOne(loanInstallmentReference);
+        InstallmentsInfoDTO installment = loanInstallmentService.getOne(userDetails, loanInstallmentReference);
         return ResponseEntity.ok(installment);
 
     }
