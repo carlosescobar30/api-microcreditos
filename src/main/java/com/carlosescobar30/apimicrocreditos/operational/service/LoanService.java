@@ -82,24 +82,19 @@ public class LoanService {
 
 
     @Transactional
-    public void cancel(UserDetailsImpl userDetails, UUID loanProductReference){
+    public void cancel(UserDetailsImpl userDetails, UUID loanReference){
 
         UUID userReference = userAdapter.userInfo(userDetails.getId()).userReference();
+        Loan loan = repository.getByPublicIdAndUserReference(loanReference, userReference)
+                .orElseThrow(() -> new ResourceNotFoundException("The loan does not exist"));
 
-        if (repository.existsByUserReferenceAndStatus(userReference, LoanStatus.PRE_APPROVED)){
-
-            repository.deleteByUserReferenceAndLoanProduct_PublicId(userReference, loanProductReference);
-            return;
-
-        }
-
-        if (repository.existsByUserReference(userReference)){
+        if (loan.getStatus() != LoanStatus.PRE_APPROVED){
 
             throw new ActionNotPermitted("The loan cannot be cancelled");
 
         }
 
-        throw new ResourceNotFoundException("The loan does not exist");
+        repository.delete(loan);
 
     }
 

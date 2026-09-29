@@ -19,9 +19,7 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
 
     boolean existsByUserReferenceAndStatus(UUID userReference, LoanStatus loanStatus);
-    boolean existsByUserReference(UUID userReference);
     Optional<Loan> getByPublicIdAndUserReference(UUID loanReference, UUID userReference);
-    void deleteByUserReferenceAndLoanProduct_PublicId(UUID userReference, UUID loanProductReference);
 
     @Query("SELECT new com.carlosescobar30.apimicrocreditos.operational.dto.LoanInfoDTO(" +
             "l.publicId, l.loanProduct.publicId, " +

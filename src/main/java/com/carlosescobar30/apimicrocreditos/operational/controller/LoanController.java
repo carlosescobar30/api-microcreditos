@@ -33,9 +33,9 @@ public class LoanController {
 
     @DeleteMapping("/cancelled/{reference}")
     public ResponseEntity<Void> cancelPreApprovedLoan(@AuthenticationPrincipal UserDetailsImpl userDetails,
-                                                      @PathVariable("reference") UUID loanProductReference){
+                                                      @PathVariable("reference") UUID loanReference){
 
-        loanService.cancel(userDetails, loanProductReference);
+        loanService.cancel(userDetails, loanReference);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
 
     }
