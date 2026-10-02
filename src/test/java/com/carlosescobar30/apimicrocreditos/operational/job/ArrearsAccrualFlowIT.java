@@ -41,8 +41,15 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Import({TestcontainersConfiguration.class, ArrearsAccrualFlowIT.MutableClockConfig.class})
@@ -181,6 +188,56 @@ class ArrearsAccrualFlowIT {
             assertThat(afterPayment.getPaidArrearsAmount()).isEqualByComparingTo(accruedBeforePayment);
             assertThat(afterPayment.getAccruedArrearsAmount()).isEqualByComparingTo(accruedBeforePayment.add(oneMoreDay));
             assertThat(afterPayment.getTotalAmount()).isEqualByComparingTo(remainingPrincipal.add(oneMoreDay));
+        }
+    }
+
+    @Nested
+    @DisplayName("Job and payments on the same loan")
+    class Locking {
+
+        @Test
+        void theJobWaitsForALoanLockedByAPaymentInProgress() throws Exception {
+
+            CountDownLatch loanLocked = new CountDownLatch(1);
+            CountDownLatch releaseLoan = new CountDownLatch(1);
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+
+            try {
+
+                Future<?> paymentInProgress = executor.submit(() -> transactionTemplate.executeWithoutResult(status -> {
+                    loanRepository.findByIdForUpdate(loanId).orElseThrow();
+                    loanLocked.countDown();
+                    awaitQuietly(releaseLoan);
+                }));
+                assertThat(loanLocked.await(10, TimeUnit.SECONDS)).isTrue();
+
+                Future<?> job = executor.submit(() -> updateJob.run());
+
+                assertThatThrownBy(() -> job.get(500, TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+                assertThat(installment(1).getArrearsAccruedUntil()).isNull();
+
+                releaseLoan.countDown();
+                paymentInProgress.get(15, TimeUnit.SECONDS);
+                job.get(15, TimeUnit.SECONDS);
+
+                assertThat(installment(1).getArrearsAccruedUntil()).isEqualTo(FIRST_OF_OCTOBER);
+
+            } finally {
+                releaseLoan.countDown();
+                executor.shutdownNow();
+            }
+        }
+    }
+
+    private static void awaitQuietly(CountDownLatch latch) {
+
+        try {
+            if (!latch.await(15, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("The latch was never released");
+            }
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(exception);
         }
     }
 

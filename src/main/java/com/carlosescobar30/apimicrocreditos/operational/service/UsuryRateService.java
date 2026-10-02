@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -72,6 +74,36 @@ public class UsuryRateService {
                 .map(UsuryRate::getRateEa)
                 .orElseThrow(() -> new ActionNotPermitted(
                         "There is no usury rate registered for " + creditModality + " on " + day));
+
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, PenaltyRateSchedule> penaltySchedulesFor(Collection<LoanProduct> loanProducts){
+
+        if (loanProducts.isEmpty()){
+
+            return Map.of();
+
+        }
+
+        Set<CreditModality> creditModalities = loanProducts.stream()
+                .map(LoanProduct::getCreditModality)
+                .collect(Collectors.toSet());
+
+        Map<CreditModality, Map<LocalDate, BigDecimal>> usuryRatesByModality = repository
+                .findAllByCreditModalityIn(creditModalities)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        UsuryRate::getCreditModality,
+                        Collectors.toMap(UsuryRate::getValidFrom, UsuryRate::getRateEa)));
+
+        return loanProducts.stream()
+                .collect(Collectors.toMap(
+                        LoanProduct::getId,
+                        loanProduct -> new PenaltyRateSchedule(
+                                loanProduct.getCreditModality(),
+                                loanProduct.getPenaltyRateEa(),
+                                usuryRatesByModality.getOrDefault(loanProduct.getCreditModality(), Map.of()))));
 
     }
 

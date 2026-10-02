@@ -7,12 +7,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface UsuryRateRepository extends JpaRepository<UsuryRate, Long> {
 
     List<UsuryRate> findAllByCreditModality(CreditModality creditModality);
+
+    List<UsuryRate> findAllByCreditModalityIn(Collection<CreditModality> creditModalities);
 
     Page<UsuryRate> findAllByCreditModality(CreditModality creditModality, Pageable pageable);
 

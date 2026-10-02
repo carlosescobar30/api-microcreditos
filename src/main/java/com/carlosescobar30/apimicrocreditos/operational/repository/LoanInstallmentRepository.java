@@ -2,6 +2,7 @@ package com.carlosescobar30.apimicrocreditos.operational.repository;
 
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanInstallment;
+import com.carlosescobar30.apimicrocreditos.operational.domain.LoanProduct;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus;
 import com.carlosescobar30.apimicrocreditos.operational.dto.InstallmentsInfoDTO;
 import org.springframework.data.domain.Page;
@@ -124,5 +125,20 @@ public interface LoanInstallmentRepository extends JpaRepository<LoanInstallment
     int changeStatusToCurrent (@Param("now") Instant now, @Param("todayPlusOneMonth")LocalDate todayPlusOneMonth);
 
 
-    List<LoanInstallment> findAllByStatus( ObligationStatus status);
+    @Query("""
+            SELECT DISTINCT li.loan.id FROM LoanInstallment li
+            WHERE li.status = com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus.OVERDUE
+            ORDER BY li.loan.id
+            """)
+    List<Long> findLoanIdsWithOverdueInstallments();
+
+    @Query("""
+            SELECT DISTINCT p FROM LoanInstallment li
+            JOIN li.loan l
+            JOIN l.loanProduct p
+            WHERE li.status = com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus.OVERDUE
+            """)
+    List<LoanProduct> findProductsWithOverdueInstallments();
+
+    List<LoanInstallment> findAllByLoan_IdAndStatus(Long loanId, ObligationStatus status);
 }

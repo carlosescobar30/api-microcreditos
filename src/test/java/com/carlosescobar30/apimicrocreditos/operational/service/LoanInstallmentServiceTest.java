@@ -6,6 +6,7 @@ import com.carlosescobar30.apimicrocreditos.iam.adapter.UserAdapter;
 import com.carlosescobar30.apimicrocreditos.iam.dto.UserAdapterResponseDTO;
 import com.carlosescobar30.apimicrocreditos.operational.dto.InstallmentsInfoDTO;
 import com.carlosescobar30.apimicrocreditos.operational.repository.LoanInstallmentRepository;
+import com.carlosescobar30.apimicrocreditos.operational.repository.LoanRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,6 +36,8 @@ class LoanInstallmentServiceTest {
     @Mock
     private LoanInstallmentRepository repository;
     @Mock
+    private LoanRepository loanRepository;
+    @Mock
     private LoanInstallmentEngineService engine;
     @Mock
     private UsuryRateService usuryRateService;
@@ -49,6 +52,7 @@ class LoanInstallmentServiceTest {
 
         this.loanInstallmentService = new LoanInstallmentService(
                 repository,
+                loanRepository,
                 engine,
                 usuryRateService,
                 userAdapter,

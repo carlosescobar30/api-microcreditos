@@ -78,6 +78,10 @@ penalty interest and updates the loan status.
   always in that order. Two simultaneous confirmations of the same payment do not
   allocate it twice, and two payments of the same loan do not overwrite each
   other's installments.
+- **The job accrues arrears loan by loan, under the same lock.** Each loan runs
+  in its own transaction and is locked before its installments are read, so the
+  job waits for a payment in progress instead of overwriting it, and a failing
+  loan does not roll back the others. Rates are loaded once per night.
 - Modules reference each other by a public UUID, never by the internal primary
   key.
 - Errors are returned as `ProblemDetail` (RFC 7807) with a stable error code.

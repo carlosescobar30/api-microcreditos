@@ -74,6 +74,10 @@ intereses de mora y actualiza el estado del crédito.
 - **La validación bloquea el pago y luego su crédito** (`SELECT ... FOR UPDATE`),
   siempre en ese orden. Dos confirmaciones simultáneas del mismo pago no lo
   imputan dos veces, y dos pagos del mismo crédito no se pisan las cuotas.
+- **El job causa la mora crédito por crédito, con el mismo lock.** Cada crédito
+  va en su propia transacción y se bloquea antes de leer sus cuotas, así que el
+  job espera a un pago en curso en vez de pisarlo, y un crédito con error no
+  revierte la mora de los demás. Las tasas se cargan una sola vez por noche.
 - Los módulos se referencian entre sí por un UUID público, nunca por la llave
   primaria interna.
 - Los errores se devuelven como `ProblemDetail` (RFC 7807) con un código estable.

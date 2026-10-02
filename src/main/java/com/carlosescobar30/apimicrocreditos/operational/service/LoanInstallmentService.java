@@ -12,10 +12,12 @@ import com.carlosescobar30.apimicrocreditos.operational.domain.rate.EffectiveRat
 import com.carlosescobar30.apimicrocreditos.operational.domain.rate.PenaltyRateSchedule;
 import com.carlosescobar30.apimicrocreditos.operational.dto.InstallmentsInfoDTO;
 import com.carlosescobar30.apimicrocreditos.operational.repository.LoanInstallmentRepository;
+import com.carlosescobar30.apimicrocreditos.operational.repository.LoanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -28,6 +30,7 @@ import java.util.*;
 public class LoanInstallmentService {
 
     private final LoanInstallmentRepository repository;
+    private final LoanRepository loanRepository;
     private final LoanInstallmentEngineService engine;
     private final UsuryRateService usuryRateService;
     private final UserAdapter userAdapter;
@@ -172,22 +175,32 @@ public class LoanInstallmentService {
 
     }
 
-    @Transactional
-    public void updateArrears (){
+    @Transactional(readOnly = true)
+    public List<Long> findLoansWithOverdueInstallments(){
 
+        return repository.findLoanIdsWithOverdueInstallments();
+
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, PenaltyRateSchedule> penaltySchedulesForOverdueLoans(){
+
+        return usuryRateService.penaltySchedulesFor(repository.findProductsWithOverdueInstallments());
+
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void accrueArrearsOf(Long loanId, Map<Long, PenaltyRateSchedule> penaltyRatesByProduct){
+
+        Loan loan = loanRepository.findByIdForUpdate(loanId)
+                .orElseThrow(() -> new ResourceNotFoundException("The loan does not exist"));
+        LoanProduct product = loan.getLoanProduct();
+        PenaltyRateSchedule penaltyRates = Optional.ofNullable(penaltyRatesByProduct.get(product.getId()))
+                .orElseGet(() -> usuryRateService.penaltyScheduleFor(product));
         LocalDate today = LocalDate.now(clock);
-        List<LoanInstallment> installments = repository.findAllByStatus(ObligationStatus.OVERDUE);
-        Map<Long, PenaltyRateSchedule> penaltyRatesByProduct = new HashMap<>();
 
-        for (LoanInstallment installment : installments){
-
-            LoanProduct product = installment.getLoan().getLoanProduct();
-            PenaltyRateSchedule penaltyRates = penaltyRatesByProduct.computeIfAbsent(product.getId(),
-                    id -> usuryRateService.penaltyScheduleFor(product));
-
-            installment.accrueArrears(today, penaltyRates);
-
-        }
+        repository.findAllByLoan_IdAndStatus(loanId, ObligationStatus.OVERDUE)
+                .forEach(installment -> installment.accrueArrears(today, penaltyRates));
 
     }
 

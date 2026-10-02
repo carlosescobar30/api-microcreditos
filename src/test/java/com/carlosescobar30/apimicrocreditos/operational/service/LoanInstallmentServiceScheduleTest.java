@@ -9,6 +9,7 @@ import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.Loan
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus;
 import com.carlosescobar30.apimicrocreditos.operational.domain.rate.PenaltyRateSchedule;
 import com.carlosescobar30.apimicrocreditos.operational.repository.LoanInstallmentRepository;
+import com.carlosescobar30.apimicrocreditos.operational.repository.LoanRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,10 +28,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +46,8 @@ class LoanInstallmentServiceScheduleTest {
 
     @Mock
     private LoanInstallmentRepository repository;
+    @Mock
+    private LoanRepository loanRepository;
     @Mock
     private UsuryRateService usuryRateService;
     @Mock
@@ -56,6 +62,7 @@ class LoanInstallmentServiceScheduleTest {
 
         this.loanInstallmentService = new LoanInstallmentService(
                 repository,
+                loanRepository,
                 new LoanInstallmentEngineService(),
                 usuryRateService,
                 userAdapter,
@@ -157,28 +164,50 @@ class LoanInstallmentServiceScheduleTest {
         }
 
         @Test
-        void arrearsAreAccruedWithOneRateScheduleLoadedPerProduct() {
+        void aLoanIsLockedBeforeItsOverdueInstallmentsAreReadAndAccrued() {
 
-            LoanProduct firstProduct = product(1L, "1000000.0000", 3);
-            LoanProduct secondProduct = product(2L, "1000000.0000", 3);
-            Loan firstLoan = loan(firstProduct, LocalDate.of(2026, 8, 5));
-            Loan secondLoan = loan(secondProduct, LocalDate.of(2026, 8, 5));
-            LoanInstallment first = overdue(firstLoan, 1);
-            LoanInstallment second = overdue(firstLoan, 2);
-            LoanInstallment third = overdue(secondLoan, 1);
+            Loan loan = loan(product(1L, "1000000.0000", 3), LocalDate.of(2026, 8, 5));
+            LoanInstallment first = overdue(loan, 1);
+            LoanInstallment second = overdue(loan, 2);
+            when(loanRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(loan));
+            when(repository.findAllByLoan_IdAndStatus(10L, ObligationStatus.OVERDUE)).thenReturn(List.of(first, second));
 
-            when(repository.findAllByStatus(ObligationStatus.OVERDUE)).thenReturn(List.of(first, second, third));
-            when(usuryRateService.penaltyScheduleFor(firstProduct)).thenReturn(schedule());
-            when(usuryRateService.penaltyScheduleFor(secondProduct)).thenReturn(schedule());
+            loanInstallmentService.accrueArrearsOf(10L, Map.of(1L, schedule()));
 
-            loanInstallmentService.updateArrears();
-
-            verify(usuryRateService, times(1)).penaltyScheduleFor(firstProduct);
-            verify(usuryRateService, times(1)).penaltyScheduleFor(secondProduct);
-            assertThat(List.of(first, second, third)).allSatisfy(installment -> {
+            InOrder order = inOrder(loanRepository, repository);
+            order.verify(loanRepository).findByIdForUpdate(10L);
+            order.verify(repository).findAllByLoan_IdAndStatus(10L, ObligationStatus.OVERDUE);
+            assertThat(List.of(first, second)).allSatisfy(installment -> {
                 assertThat(installment.getArrearsAccruedUntil()).isEqualTo(TODAY_IN_BOGOTA);
                 assertThat(installment.getAccruedArrearsAmount()).isPositive();
             });
+            verifyNoInteractions(usuryRateService);
+        }
+
+        @Test
+        void aProductMissingFromThePreloadedSchedulesIsLoadedOnTheSpot() {
+
+            LoanProduct product = product(1L, "1000000.0000", 3);
+            Loan loan = loan(product, LocalDate.of(2026, 8, 5));
+            LoanInstallment installment = overdue(loan, 1);
+            when(loanRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(loan));
+            when(repository.findAllByLoan_IdAndStatus(10L, ObligationStatus.OVERDUE)).thenReturn(List.of(installment));
+            when(usuryRateService.penaltyScheduleFor(product)).thenReturn(schedule());
+
+            loanInstallmentService.accrueArrearsOf(10L, Map.of());
+
+            assertThat(installment.getArrearsAccruedUntil()).isEqualTo(TODAY_IN_BOGOTA);
+        }
+
+        @Test
+        void theSchedulesOfTheNightAreLoadedForEveryProductWithOverdueInstallmentsAtOnce() {
+
+            List<LoanProduct> products = List.of(product(1L, "1000000.0000", 3), product(2L, "1000000.0000", 3));
+            Map<Long, PenaltyRateSchedule> schedules = Map.of(1L, schedule(), 2L, schedule());
+            when(repository.findProductsWithOverdueInstallments()).thenReturn(products);
+            when(usuryRateService.penaltySchedulesFor(products)).thenReturn(schedules);
+
+            assertThat(loanInstallmentService.penaltySchedulesForOverdueLoans()).isEqualTo(schedules);
         }
     }
 

@@ -25,7 +25,9 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -142,6 +144,36 @@ class UsuryRateServiceTest {
         }
 
         @Test
+        void theSchedulesOfSeveralProductsAreBuiltWithASingleQuery() {
+
+            LoanProduct consumer = product(1L, CreditModality.CONSUMER_AND_ORDINARY, "0.4000");
+            LoanProduct popular = product(2L, CreditModality.POPULAR_PRODUCTIVE_URBAN, "0.9500");
+            when(repository.findAllByCreditModalityIn(
+                    Set.of(CreditModality.CONSUMER_AND_ORDINARY, CreditModality.POPULAR_PRODUCTIVE_URBAN)))
+                    .thenReturn(List.of(
+                            rate(LocalDate.of(2026, 10, 1), "0.2859"),
+                            UsuryRate.builder()
+                                    .creditModality(CreditModality.POPULAR_PRODUCTIVE_URBAN)
+                                    .validFrom(LocalDate.of(2026, 10, 1))
+                                    .rateEa(new BigDecimal("0.8760"))
+                                    .build()));
+
+            Map<Long, PenaltyRateSchedule> schedules = usuryRateService.penaltySchedulesFor(List.of(consumer, popular));
+
+            assertThat(schedules.get(1L).effectiveRateEaOn(LocalDate.of(2026, 10, 15))).isEqualByComparingTo("0.2859");
+            assertThat(schedules.get(2L).effectiveRateEaOn(LocalDate.of(2026, 10, 15))).isEqualByComparingTo("0.8760");
+            verify(repository, never()).findAllByCreditModality(any(CreditModality.class));
+        }
+
+        @Test
+        void noProductsMeansNoQuery() {
+
+            assertThat(usuryRateService.penaltySchedulesFor(List.of())).isEmpty();
+
+            verifyNoInteractions(repository);
+        }
+
+        @Test
         void listingWithoutAModalityReturnsEveryRate() {
 
             Pageable pageable = PageRequest.of(0, 20);
@@ -152,6 +184,16 @@ class UsuryRateServiceTest {
             verify(repository).findAll(pageable);
             verify(repository, never()).findAllByCreditModality(any(), any(Pageable.class));
         }
+    }
+
+    private LoanProduct product(Long id, CreditModality creditModality, String penaltyRateEa) {
+
+        LoanProduct product = LoanProduct.builder()
+                .penaltyRateEa(new BigDecimal(penaltyRateEa))
+                .creditModality(creditModality)
+                .build();
+        product.setId(id);
+        return product;
     }
 
     private UsuryRateRequestDTO request(LocalDate validFrom) {
