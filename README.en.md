@@ -49,6 +49,12 @@ penalty interest and updates the loan status.
 - **Rotation is serialised with a pessimistic lock**, with a grace window so two
   legitimate concurrent requests are not mistaken for an attack. Reusing a token
   outside that window revokes every token the user holds.
+- **Arrears accrue incrementally.** Each day adds
+  `outstanding overdue principal × daily rate` for the new days only; what was
+  already accrued is never recalculated, so a principal payment lowers the base
+  going forward, not retroactively. Running the job twice on the same day adds
+  nothing, and arrears are brought up to date before a payment is allocated.
+  Dates come from the `Clock` in Colombian time (`America/Bogota`).
 - **German amortization** (constant principal, declining installment). The last
   installment absorbs the rounding remainder so the principal adds up exactly.
 - **A payment does not belong to an installment.** It is split across concepts
@@ -109,8 +115,8 @@ To run the application from your IDE, start the database only with
 - No principal prepayment with re-amortization: overpaying covers upcoming
   installments instead.
 - Surplus is recorded as an allocation but is not yet a usable credit balance.
-- The scheduled jobs read the system clock instead of the injected `Clock`, which
-  makes them hard to test deterministically.
+- The penalty rate is a fixed daily rate per product: it is not yet derived from
+  an effective annual rate nor capped at the current usury rate.
 
 ## History
 

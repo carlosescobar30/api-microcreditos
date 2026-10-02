@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,6 +35,7 @@ public class LoanService {
     private final LoanInstallmentService loanInstallmentService;
     private final LoanDTOFactory loanDTOFactory;
     private final LoanProductMapper mapper;
+    private final Clock clock;
 
     @Transactional
     public LoanAvailabilityDTO request(UserDetailsImpl userDetails, UUID loanProductReference){
@@ -177,7 +179,7 @@ public class LoanService {
     private void updateToActive(Loan loan){
 
         LoanProduct loanProduct = loan.getLoanProduct();
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         LocalDate startDate = today.getDayOfMonth() < 29
                 ? today
                 : today.plusMonths(1).withDayOfMonth(1);

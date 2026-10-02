@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public class PaymentAllocationService {
     private final LoanInstallmentService loanInstallmentService;
     private final LoanService loanService;
     private final PaymentAllocationDTOFactory factory;
+    private final Clock clock;
 
     @Transactional
     public List<AllocationDetailsDTO>  allocatePayment (Payment payment){
@@ -44,6 +47,11 @@ public class PaymentAllocationService {
             throw new ResourceNotFoundException("The installments to be paid were not found");
 
         }
+
+        LocalDate today = LocalDate.now(clock);
+        BigDecimal dailyPenaltyRate = loan.getLoanProduct().getDailyPenaltyRate();
+        installments.forEach(installment -> installment.accrueArrears(today, dailyPenaltyRate));
+
         List<AllocationDetailsDTO> details = new ArrayList<>();
         int index = 0;
 
@@ -51,10 +59,7 @@ public class PaymentAllocationService {
 
             LoanInstallment installment = installments.get(index);
 
-            int arrearCompare = installment
-                    .getAccruedArrearsAmount()
-                    .subtract(installment.getPaidArrearsAmount())
-                    .compareTo(BigDecimal.ZERO);
+            int arrearCompare = installment.outstandingArrears().compareTo(BigDecimal.ZERO);
             if (installment.getStatus().equals(ObligationStatus.OVERDUE) && arrearCompare > 0) {
                 AllocationAmountsDTO arrearAmounts = allocateArrear(amount, installment);
                 amount = arrearAmounts.surplus();
@@ -139,85 +144,39 @@ public class PaymentAllocationService {
 
     private AllocationAmountsDTO allocateArrear (BigDecimal amount, LoanInstallment installment){
 
-        BigDecimal arrear = installment
-                .getAccruedArrearsAmount()
-                .subtract(installment.getPaidArrearsAmount());
-        BigDecimal total = installment.getTotalAmount();
-        int compareArrear = amount.compareTo(arrear);
+        BigDecimal paid = amount.min(installment.outstandingArrears());
+        installment.setPaidArrearsAmount(installment.getPaidArrearsAmount().add(paid));
+        installment.recalculateTotal();
 
-        if (compareArrear <= 0){
-
-            installment.setPaidArrearsAmount(installment.getPaidArrearsAmount().add(amount));
-            installment.setTotalAmount(total.subtract(amount));
-            return factory.createAllocationAmounts(amount, BigDecimal.ZERO);
-
-        }
-
-        installment.setPaidArrearsAmount(installment.getAccruedArrearsAmount());
-        installment.setTotalAmount(installment.getTotalAmount().subtract(arrear));
-        amount = amount.subtract(arrear);
-
-
-        return factory.createAllocationAmounts(arrear, amount);
+        return factory.createAllocationAmounts(paid, amount.subtract(paid));
 
     }
 
     private AllocationAmountsDTO allocateInterest (BigDecimal amount, LoanInstallment installment){
 
-        BigDecimal interest = installment.getInterestAmount();
-        BigDecimal total = installment.getTotalAmount();
-        int compareArrear = amount.compareTo(interest);
+        BigDecimal paid = amount.min(installment.getInterestAmount());
+        installment.setInterestAmount(installment.getInterestAmount().subtract(paid));
+        installment.recalculateTotal();
 
-        if (compareArrear <= 0){
-
-            total = total.subtract(amount);
-            installment.setTotalAmount(total);
-
-            interest = interest.subtract(amount);
-            installment.setInterestAmount(interest);
-            return factory.createAllocationAmounts(amount, BigDecimal.ZERO);
-
-        }
-
-        BigDecimal newTotalAmount = total.subtract(interest);
-        installment.setTotalAmount(newTotalAmount);
-        installment.setInterestAmount(BigDecimal.ZERO);
-        amount = amount.subtract(interest);
-
-        return factory.createAllocationAmounts(interest, amount);
+        return factory.createAllocationAmounts(paid, amount.subtract(paid));
 
     }
 
     private AllocationAmountsDTO allocatePrincipal (BigDecimal amount, LoanInstallment installment){
 
+        BigDecimal paid = amount.min(installment.getPrincipalAmount());
+        installment.setPrincipalAmount(installment.getPrincipalAmount().subtract(paid));
 
-        BigDecimal principal = installment.getPrincipalAmount();
-        BigDecimal total = installment.getTotalAmount();
-        int compareArrear = amount.compareTo(principal);
+        if (installment.getPrincipalAmount().signum() == 0){
 
-        if (compareArrear < 0){
-
-
-            total = total.subtract(amount);
-            installment.setTotalAmount(total);
-            principal = principal.subtract(amount);
-            installment.setPrincipalAmount(principal);
-
-            loanService.deductSettledAmount(installment.getLoan(), amount);
-            return factory.createAllocationAmounts(amount, BigDecimal.ZERO);
+            installment.setStatus(ObligationStatus.PAID);
 
         }
 
+        installment.recalculateTotal();
+        loanService.deductSettledAmount(installment.getLoan(), paid);
 
-
-        installment.setPrincipalAmount(BigDecimal.ZERO);
-        installment.setTotalAmount(BigDecimal.ZERO);
-        installment.setStatus(ObligationStatus.PAID);
-        amount = amount.subtract(principal);
-
-        loanService.deductSettledAmount(installment.getLoan(),principal);
-
-        return factory.createAllocationAmounts(principal,amount);
+        return factory.createAllocationAmounts(paid, amount.subtract(paid));
 
     }
 

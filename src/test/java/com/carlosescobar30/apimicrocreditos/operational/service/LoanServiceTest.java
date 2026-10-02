@@ -20,6 +20,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,7 +63,8 @@ class LoanServiceTest {
                 loanProductService,
                 loanInstallmentService,
                 loanDTOFactory,
-                mapper);
+                mapper,
+                Clock.systemUTC());
 
         this.user = new UserDetailsImpl(USER_ID, "carlos", null, List.of());
 

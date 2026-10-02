@@ -1,5 +1,6 @@
 package com.carlosescobar30.apimicrocreditos.operational.job;
 
+import com.carlosescobar30.apimicrocreditos.common.configuration.ClockConfig;
 import com.carlosescobar30.apimicrocreditos.operational.service.LoanInstallmentService;
 import com.carlosescobar30.apimicrocreditos.operational.service.LoanService;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ public class UpdateJob {
     private final LoanService loanService;
     private final LoanInstallmentService loanInstallmentService;
 
-    @Scheduled(cron = "${operational.update-cron}")
+    @Scheduled(cron = "${operational.update-cron}", zone = ClockConfig.TIME_ZONE)
     public void run(){
 
         loanInstallmentService.updateStatus();

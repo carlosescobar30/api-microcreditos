@@ -47,6 +47,12 @@ intereses de mora y actualiza el estado del crédito.
 - **La rotación se serializa con un lock pesimista**, con una ventana de gracia
   para que dos peticiones simultáneas legítimas no se confundan con un ataque.
   Reutilizar un token fuera de esa ventana revoca todos los del usuario.
+- **La mora se causa de forma incremental.** Cada día se suma
+  `capital vencido pendiente × tasa diaria` solo por los días nuevos; lo ya
+  causado nunca se recalcula, así que un abono a capital reduce la base hacia
+  adelante, no hacia atrás. Correr el job dos veces el mismo día no suma nada, y
+  antes de imputar un pago la mora se pone al día. Las fechas se toman del
+  `Clock` en hora de Colombia (`America/Bogota`).
 - **Amortización alemana** (capital fijo, cuota decreciente). La última cuota
   absorbe el residuo del redondeo para que el capital cuadre exacto.
 - **Un pago no pertenece a una cuota.** Se reparte entre conceptos y cuotas, y
@@ -106,8 +112,8 @@ Para correr la aplicación desde el IDE, levanta solo la base de datos con
 - Sin abono a capital con re-amortización: pagar de más cubre cuotas futuras.
 - El excedente se registra como imputación pero no es todavía un saldo a favor
   utilizable.
-- Los jobs usan el reloj del sistema en vez del `Clock` inyectado, lo que los
-  hace difíciles de testear de forma determinista.
+- La tasa de mora es una tasa diaria fija por producto: todavía no se convierte
+  desde una E.A. ni se limita a la tasa de usura vigente.
 
 ## Historial
 

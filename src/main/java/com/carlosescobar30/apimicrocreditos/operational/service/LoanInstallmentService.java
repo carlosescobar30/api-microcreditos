@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 
@@ -168,46 +167,29 @@ public class LoanInstallmentService {
     @Transactional
     public void updateStatus(){
 
-        repository.changeStatusToOverdue(clock.instant(), LocalDate.now());
-        repository.changeStatusToCurrent(clock.instant(), LocalDate.now().plusMonths(1));
+        LocalDate today = LocalDate.now(clock);
+        repository.changeStatusToOverdue(clock.instant(), today);
+        repository.changeStatusToCurrent(clock.instant(), today.plusMonths(1));
 
     }
 
     @Transactional
     public void updateArrears (){
 
+        LocalDate today = LocalDate.now(clock);
         List<LoanInstallment> installments = repository.findAllByStatus(ObligationStatus.OVERDUE);
-        Map<Long,LoanProduct> products = new HashMap<>();
-        LoanProduct product;
+        Map<Long, BigDecimal> dailyPenaltyRates = new HashMap<>();
 
         for (LoanInstallment installment : installments){
 
-            LocalDate paymentDate = installment.getPaymentDate();
-            LocalDate now = LocalDate.now();
-            long overdueDays = ChronoUnit.DAYS.between(paymentDate, now);
-            if (!products.containsKey(installment.getLoan().getLoanProduct().getId())){
+            Long productId = installment.getLoan().getLoanProduct().getId();
+            BigDecimal dailyPenaltyRate = dailyPenaltyRates.computeIfAbsent(productId,
+                    id -> loanProductService.getById(id).getDailyPenaltyRate());
 
-                product = loanProductService.getById(installment.getLoan().getLoanProduct().getId());
-                products.put(product.getId(),product);
-
-            }
-
-                product = products.get(installment.getLoan().getLoanProduct().getId());
-                BigDecimal arrersPerDay = installment.getPrincipalAmount().multiply(product.getDailyPenaltyRate());
-                BigDecimal accruedArrears = arrersPerDay.multiply(new BigDecimal(overdueDays));
-                BigDecimal rawTotalAmount = installment
-                        .getTotalAmount()
-                        .subtract(installment
-                                .getAccruedArrearsAmount());
-
-                installment.setTotalAmount(rawTotalAmount);
-                installment.setAccruedArrearsAmount(accruedArrears);
-                installment.setTotalAmount(rawTotalAmount.add(installment.getAccruedArrearsAmount()));
+            installment.accrueArrears(today, dailyPenaltyRate);
 
         }
 
     }
 
-
-
-}
+}
