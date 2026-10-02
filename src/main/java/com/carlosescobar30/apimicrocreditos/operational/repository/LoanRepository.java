@@ -19,6 +19,11 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
 
     boolean existsByUserReferenceAndStatus(UUID userReference, LoanStatus loanStatus);
+
+    @Query(value = "SELECT CAST(1 AS integer) FROM (" +
+            "SELECT pg_advisory_xact_lock(hashtextextended(CAST(:userReference AS text), 0))) AS acquired",
+            nativeQuery = true)
+    Integer lockLoanRequestsOf(@Param("userReference") UUID userReference);
     Optional<Loan> getByPublicIdAndUserReference(UUID loanReference, UUID userReference);
 
     @Query("SELECT new com.carlosescobar30.apimicrocreditos.operational.dto.LoanInfoDTO(" +

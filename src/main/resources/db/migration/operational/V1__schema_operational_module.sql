@@ -135,6 +135,7 @@ CHECK (credit_modality IN (
 );
 
 CREATE INDEX idx_loans_user ON loans(user_id);
+CREATE UNIQUE INDEX idx_uq_pre_approved_loan_per_user ON loans (user_id) WHERE status = 'PRE_APPROVED';
 CREATE INDEX idx_loan_installments_loan ON loan_installments(loan_id);
 CREATE INDEX idx_payments_loan ON payments(loan_id);
 CREATE UNIQUE INDEX idx_uq_status_current_per_loan ON loan_installments (loan_id) WHERE status = 'CURRENT';

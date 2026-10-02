@@ -6,6 +6,7 @@ import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.adapter.UserAdapter;
 import com.carlosescobar30.apimicrocreditos.iam.dto.UserAdapterResponseDTO;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
+import com.carlosescobar30.apimicrocreditos.operational.domain.LoanProduct;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.LoanStatus;
 import com.carlosescobar30.apimicrocreditos.operational.factory.LoanDTOFactory;
 import com.carlosescobar30.apimicrocreditos.operational.mappers.LoanProductMapper;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -27,6 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +40,7 @@ class LoanServiceTest {
     private static final Long USER_ID = 7L;
     private static final UUID USER_REFERENCE = UUID.randomUUID();
     private static final UUID LOAN_REFERENCE = UUID.randomUUID();
+    private static final UUID PRODUCT_REFERENCE = UUID.randomUUID();
 
     @Mock
     private UserAdapter userAdapter;
@@ -114,6 +118,28 @@ class LoanServiceTest {
                     .isInstanceOf(ActionNotPermitted.class);
 
             verify(repository, never()).delete(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Tests for the request method")
+    class RequestTests {
+
+        @Test
+        void theRequestsOfTheUserAreSerializedBeforeCheckingForAnotherLoanInProcess() {
+
+            when(repository.existsByUserReferenceAndStatus(USER_REFERENCE, LoanStatus.IN_ARREARS)).thenReturn(false);
+            when(loanProductService.getOneByReferenceAndUserScore(PRODUCT_REFERENCE, 900))
+                    .thenReturn(Optional.of(LoanProduct.builder().name("Product").build()));
+            when(repository.existsByUserReferenceAndStatus(USER_REFERENCE, LoanStatus.PRE_APPROVED)).thenReturn(true);
+
+            loanService.request(user, PRODUCT_REFERENCE);
+
+            InOrder order = inOrder(repository);
+            order.verify(repository).lockLoanRequestsOf(USER_REFERENCE);
+            order.verify(repository).existsByUserReferenceAndStatus(USER_REFERENCE, LoanStatus.IN_ARREARS);
+            order.verify(repository).existsByUserReferenceAndStatus(USER_REFERENCE, LoanStatus.PRE_APPROVED);
+            verify(repository, never()).save(any());
         }
     }
 

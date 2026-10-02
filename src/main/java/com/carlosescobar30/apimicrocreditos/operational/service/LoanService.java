@@ -49,6 +49,8 @@ public class LoanService {
 
         }
 
+        repository.lockLoanRequestsOf(userAdapterResponseDTO.userReference());
+
         if (repository.existsByUserReferenceAndStatus(userAdapterResponseDTO.userReference(), LoanStatus.IN_ARREARS)){
 
             return loanDTOFactory.buildRejected(LoanAvailability.REJECTED_BY_ARRERS);
