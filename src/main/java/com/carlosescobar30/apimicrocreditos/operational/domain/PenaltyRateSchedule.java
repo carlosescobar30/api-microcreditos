@@ -1,6 +1,5 @@
 package com.carlosescobar30.apimicrocreditos.operational.domain;
 
-import com.carlosescobar30.apimicrocreditos.operational.attribute.RoundingAttributes;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.CreditModality;
 
 import java.math.BigDecimal;
@@ -13,7 +12,7 @@ import java.util.TreeMap;
 
 public final class PenaltyRateSchedule {
 
-    private static final double DAYS_PER_YEAR = 365;
+    private static final int DAYS_PER_YEAR = 365;
 
     private final CreditModality creditModality;
     private final BigDecimal contractualRateEa;
@@ -53,10 +52,7 @@ public final class PenaltyRateSchedule {
 
     public static BigDecimal toDailyRate(BigDecimal effectiveAnnualRate) {
 
-        double dailyRate = Math.pow(1 + effectiveAnnualRate.doubleValue(), 1 / DAYS_PER_YEAR) - 1;
-
-        return BigDecimal.valueOf(dailyRate)
-                .setScale(RoundingAttributes.RATE_SCALE, RoundingAttributes.ROUNDING_DEFAULT);
+        return EffectiveRates.toPeriodicRate(effectiveAnnualRate, DAYS_PER_YEAR);
 
     }
 

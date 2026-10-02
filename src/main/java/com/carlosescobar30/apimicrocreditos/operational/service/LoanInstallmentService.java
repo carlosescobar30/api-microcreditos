@@ -4,6 +4,7 @@ import com.carlosescobar30.apimicrocreditos.common.exception.not_found.ResourceN
 import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.adapter.UserAdapter;
 import com.carlosescobar30.apimicrocreditos.operational.attribute.RoundingAttributes;
+import com.carlosescobar30.apimicrocreditos.operational.domain.EffectiveRates;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanInstallment;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanProduct;
@@ -39,10 +40,7 @@ public class LoanInstallmentService {
         int installments = loanProduct.getInstallments();
         int periodicity = loanProduct.getPeriodicity();
         BigDecimal annualRate = loanProduct.getInterestRate();
-        BigDecimal periodicInterest = BigDecimal.valueOf(Math.pow(1 + annualRate.doubleValue(), 1.0/periodicity) - 1)
-                .setScale(
-                        RoundingAttributes.SCALE_DEFAULT,
-                        RoundingAttributes.ROUNDING_DOWN);
+        BigDecimal periodicInterest = EffectiveRates.toPeriodicRate(annualRate, periodicity);
         BigDecimal balance = loanProduct.getTotalPrincipal();
         BigDecimal principalAmount =  engine.calculatePrincipalAmount (loanProduct);
         List<LoanInstallment> allInstallments = new ArrayList<>();

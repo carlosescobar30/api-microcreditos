@@ -87,6 +87,24 @@ class LoanInstallmentServiceScheduleTest {
         }
 
         @Test
+        void theInterestUsesTheExactMonthlyEquivalentOfTheAnnualRate() {
+
+            Loan loan = loan(product(1L, "1000000.0000", 3), LocalDate.of(2026, 10, 15));
+
+            loanInstallmentService.create(loan);
+
+            verify(repository).saveAll(installmentsCaptor.capture());
+
+            assertThat(installmentsCaptor.getValue())
+                    .extracting(LoanInstallment::getInterestAmount)
+                    .usingElementComparator(BigDecimal::compareTo)
+                    .containsExactly(
+                            new BigDecimal("18769.2651"),
+                            new BigDecimal("12512.8434"),
+                            new BigDecimal("6256.4217"));
+        }
+
+        @Test
         void theInterestDecreasesAsThePrincipalIsPaidDown() {
 
             Loan loan = loan(product(1L, "1000000.0000", 3), LocalDate.of(2026, 10, 15));
