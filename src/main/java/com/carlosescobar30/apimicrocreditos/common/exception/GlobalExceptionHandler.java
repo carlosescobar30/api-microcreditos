@@ -5,6 +5,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -71,6 +72,25 @@ public class GlobalExceptionHandler {
                  problem.getProperties().get("traceId"),
                  exception);
          return problem;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ProblemDetail handlerMessageNotReadableException (HttpMessageNotReadableException exception){
+
+        ErrorCode error = ErrorCode.MALFORMED_REQUEST;
+        ProblemDetail problem = ProblemDetailFactory.build(
+                error.getStatus(),
+                error.getCode(),
+                error.getMessage()
+        );
+
+        log.warn("Malformed Request [{}] : {}. ProblemID: {}",
+                error.getCode(),
+                exception.getMessage(),
+                problem.getProperties().get("traceId"));
+
+        return problem;
+
     }
 
     @ExceptionHandler(AuthenticationException.class)

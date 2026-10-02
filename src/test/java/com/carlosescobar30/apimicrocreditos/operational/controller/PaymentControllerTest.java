@@ -117,6 +117,28 @@ class PaymentControllerTest {
         verify(paymentService, never()).pay(any(), any(), any());
     }
 
+    @Test
+    void anUnknownFinancialMethodIsAMalformedRequest() throws Exception {
+
+        pay("""
+                {"transactionCode":"TX-001","financialMethod":"CASH","amount":150000,"description":"October installment"}
+                """)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+
+        verify(paymentService, never()).pay(any(), any(), any());
+    }
+
+    @Test
+    void aBodyThatIsNotJsonIsAMalformedRequest() throws Exception {
+
+        pay("{not json")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("MALFORMED_REQUEST"));
+
+        verify(paymentService, never()).pay(any(), any(), any());
+    }
+
     private ResultActions pay(String body) throws Exception {
 
         return mockMvc.perform(post("/payment/" + LOAN_REFERENCE)

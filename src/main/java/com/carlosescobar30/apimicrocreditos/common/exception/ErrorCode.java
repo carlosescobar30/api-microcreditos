@@ -10,6 +10,7 @@ public enum ErrorCode {
 
     // BAD_REQUEST 400
     VALIDATION_ERROR ("VALIDATION_ERROR", HttpStatus.BAD_REQUEST, "One or more fields are invalid"),
+    MALFORMED_REQUEST("MALFORMED_REQUEST", HttpStatus.BAD_REQUEST, "The request body could not be read"),
     ACTION_NOT_PERMITTED("ACTION_NOT_PERMITTED", HttpStatus.BAD_REQUEST,"The resource does not permit the requested action"),
     RATE_ABOVE_USURY("RATE_ABOVE_USURY", HttpStatus.BAD_REQUEST, "The rate exceeds the usury rate in force"),
 
