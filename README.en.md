@@ -105,22 +105,26 @@ To run the application from your IDE, start the database only with
 ./mvnw verify            # requires Docker
 ```
 
-80 tests across three levels:
+Over 130 tests across three levels:
 
 - **Unit** — JWT signing and parsing, token hashing, and every branch of the
   rotation logic, including the exact grace period boundary, and every status
-  transition of a payment.
+  transition of a payment. In `operational`, arrears accrual (the partial
+  payment scenario, idempotency, caught-up days and month changes), the E.A. to
+  daily conversion with the usury cap, cascade allocation, the amortization
+  schedule, and the product and usury rate rules.
 - **Integration** (Testcontainers) — the queries against a real Postgres, the
   revocation surviving the exception, and two concurrent rotations of the same
   token resolving to exactly one new token. In `operational`, two concurrent
   validations of the same payment allocating it only once, and the loan balance
-  matching the principal left in its installments.
+  matching the principal left in its installments. The daily job against a
+  real database: arrears capped at the migrated usury rates, never recalculated
+  after a payment and not duplicated when it runs twice on the same day.
 - **Web slice** — the HTTP contract of `/auth` and the security chain: missing,
-  expired and forged tokens, plus role based access.
+  expired and forged tokens, plus role based access, admin endpoints included.
 
 ## Known limitations
 
-- In `operational`, amortization and cascade allocation are not covered yet.
 - No rate limiting on login.
 - No real payment gateway. `/admin/payment/validate` stands in for the
   provider confirmation.

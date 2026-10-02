@@ -101,22 +101,27 @@ Para correr la aplicación desde el IDE, levanta solo la base de datos con
 ./mvnw verify            # requiere Docker
 ```
 
-80 tests, en tres niveles:
+Más de 130 tests, en tres niveles:
 
 - **Unitarios** — firma y parseo de JWT, hasheo de tokens y cada rama de la
   lógica de rotación, incluido el borde exacto del periodo de gracia, y cada
-  transición de estado de un pago.
+  transición de estado de un pago. En `operational`, la causación de la mora
+  (el escenario del abono parcial, idempotencia, días recuperados y cambio de
+  mes), la conversión E.A. a diaria con el tope de usura, la imputación en
+  cascada, la tabla de amortización y las reglas de productos y tasas de usura.
 - **Integración** (Testcontainers) — las queries contra Postgres real, que la
   revocación sobreviva a la excepción, y dos rotaciones concurrentes del mismo
   token resolviendo en exactamente un token nuevo. En `operational`, dos
   validaciones concurrentes del mismo pago imputándolo una sola vez, y el saldo
-  del crédito cuadrando con el capital de sus cuotas.
+  del crédito cuadrando con el capital de sus cuotas. El job diario sobre una
+  base real: mora con la usura de la migración, sin recalcularse después de un
+  abono y sin duplicarse si corre dos veces el mismo día.
 - **Slice web** — el contrato HTTP de `/auth` y la cadena de seguridad: sin
-  token, token expirado, token falsificado y acceso por rol.
+  token, token expirado, token falsificado y acceso por rol, incluidos los
+  endpoints de admin.
 
 ## Limitaciones conocidas
 
-- En `operational` falta cubrir la amortización y la imputación en cascada.
 - Sin rate limiting en el login.
 - Sin pasarela de pagos real. `/admin/payment/validate` simula la
   confirmación del proveedor.
