@@ -37,7 +37,7 @@ class LoanInstallmentServiceTest {
     @Mock
     private LoanInstallmentEngineService engine;
     @Mock
-    private LoanProductService loanProductService;
+    private UsuryRateService usuryRateService;
     @Mock
     private UserAdapter userAdapter;
 
@@ -50,7 +50,7 @@ class LoanInstallmentServiceTest {
         this.loanInstallmentService = new LoanInstallmentService(
                 repository,
                 engine,
-                loanProductService,
+                usuryRateService,
                 userAdapter,
                 Clock.systemUTC());
 

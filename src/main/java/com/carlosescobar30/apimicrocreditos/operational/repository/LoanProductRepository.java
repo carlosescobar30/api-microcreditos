@@ -17,17 +17,19 @@ import java.util.UUID;
 public interface LoanProductRepository extends JpaRepository<LoanProduct, Long>, JpaSpecificationExecutor<LoanProduct> {
 
     @Query("SELECT new com.carlosescobar30.apimicrocreditos.operational.dto.AvailableLoanProductDTO " +
-            "(lp.publicId, lp.name, lp.totalPrincipal, lp.interestRate, lp.dailyPenaltyRate, lp.installments) " +
+            "(lp.publicId, lp.name, lp.totalPrincipal, lp.interestRate, lp.penaltyRateEa, lp.creditModality, lp.installments) " +
             "FROM LoanProduct lp")
     Page<AvailableLoanProductDTO> findAllLoanProducts(Pageable pageable);
 
     @Query("SELECT new com.carlosescobar30.apimicrocreditos.operational.dto.AvailableLoanProductDTO " +
-            "(lp.publicId, lp.name, lp.totalPrincipal, lp.interestRate, lp.dailyPenaltyRate, lp.installments) " +
+            "(lp.publicId, lp.name, lp.totalPrincipal, lp.interestRate, lp.penaltyRateEa, lp.creditModality, lp.installments) " +
             "FROM LoanProduct lp " +
             "WHERE lp.publicId = :loanProductReference")
     AvailableLoanProductDTO findOneProduct(@Param("loanProductReference") UUID loanProductReference);
 
     Optional<LoanProduct> findByPublicIdAndMinimumUserScoreLessThanEqual(UUID publicId, Integer minimumUserScore);
+
+    boolean existsByName(String name);
 
 
 

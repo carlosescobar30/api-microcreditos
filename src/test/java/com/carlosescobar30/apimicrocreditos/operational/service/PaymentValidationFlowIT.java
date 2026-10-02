@@ -4,6 +4,7 @@ import com.carlosescobar30.apimicrocreditos.TestcontainersConfiguration;
 import com.carlosescobar30.apimicrocreditos.common.exception.conflict.PaymentAlreadyProcessedException;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanInstallment;
+import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.CreditModality;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanProduct;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Payment;
 import com.carlosescobar30.apimicrocreditos.operational.domain.PaymentAllocation;
@@ -83,7 +84,8 @@ class PaymentValidationFlowIT {
                 .name("Test product")
                 .totalPrincipal(TOTAL_PRINCIPAL)
                 .interestRate(new BigDecimal("0.2500"))
-                .dailyPenaltyRate(new BigDecimal("0.0010"))
+                .penaltyRateEa(new BigDecimal("0.2500"))
+                .creditModality(CreditModality.CONSUMER_AND_ORDINARY)
                 .installments(12)
                 .periodicity(12)
                 .minimumUserScore(1)

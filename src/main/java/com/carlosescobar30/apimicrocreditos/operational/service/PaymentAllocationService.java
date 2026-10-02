@@ -6,6 +6,7 @@ import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanInstallment;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Payment;
 import com.carlosescobar30.apimicrocreditos.operational.domain.PaymentAllocation;
+import com.carlosescobar30.apimicrocreditos.operational.domain.PenaltyRateSchedule;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.PaymentApplication;
 import com.carlosescobar30.apimicrocreditos.operational.dto.AllocationDetailsDTO;
@@ -30,6 +31,7 @@ public class PaymentAllocationService {
     private final LoanInstallmentService loanInstallmentService;
     private final LoanService loanService;
     private final PaymentAllocationDTOFactory factory;
+    private final UsuryRateService usuryRateService;
     private final Clock clock;
 
     @Transactional
@@ -49,8 +51,8 @@ public class PaymentAllocationService {
         }
 
         LocalDate today = LocalDate.now(clock);
-        BigDecimal dailyPenaltyRate = loan.getLoanProduct().getDailyPenaltyRate();
-        installments.forEach(installment -> installment.accrueArrears(today, dailyPenaltyRate));
+        PenaltyRateSchedule penaltyRates = usuryRateService.penaltyScheduleFor(loan.getLoanProduct());
+        installments.forEach(installment -> installment.accrueArrears(today, penaltyRates));
 
         List<AllocationDetailsDTO> details = new ArrayList<>();
         int index = 0;

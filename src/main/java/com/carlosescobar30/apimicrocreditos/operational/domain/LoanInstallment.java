@@ -8,7 +8,6 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 
 @Entity
 @Table(name = "loan_installments", schema = "operational")
@@ -50,22 +49,26 @@ public class LoanInstallment extends EntityBaseClass {
     @Enumerated(value = EnumType.STRING)
     private ObligationStatus status;
 
-    public void accrueArrears(LocalDate today, BigDecimal dailyPenaltyRate) {
+    public void accrueArrears(LocalDate today, PenaltyRateSchedule penaltyRates) {
 
         if (status != ObligationStatus.OVERDUE) {
             return;
         }
 
         LocalDate accruedFrom = arrearsAccruedUntil != null ? arrearsAccruedUntil : paymentDate;
-        long newDays = ChronoUnit.DAYS.between(accruedFrom, today);
 
-        if (newDays <= 0) {
+        if (!today.isAfter(accruedFrom)) {
             return;
         }
 
+        BigDecimal dailyRatesSum = BigDecimal.ZERO;
+
+        for (LocalDate day = accruedFrom.plusDays(1); !day.isAfter(today); day = day.plusDays(1)) {
+            dailyRatesSum = dailyRatesSum.add(penaltyRates.dailyRateOn(day));
+        }
+
         BigDecimal increment = principalAmount
-                .multiply(dailyPenaltyRate)
-                .multiply(BigDecimal.valueOf(newDays))
+                .multiply(dailyRatesSum)
                 .setScale(RoundingAttributes.SCALE_DEFAULT, RoundingAttributes.ROUNDING_DEFAULT);
 
         accruedArrearsAmount = accruedArrearsAmount.add(increment);

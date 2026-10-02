@@ -7,6 +7,7 @@ import com.carlosescobar30.apimicrocreditos.operational.attribute.RoundingAttrib
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanInstallment;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanProduct;
+import com.carlosescobar30.apimicrocreditos.operational.domain.PenaltyRateSchedule;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus;
 import com.carlosescobar30.apimicrocreditos.operational.dto.InstallmentsInfoDTO;
 import com.carlosescobar30.apimicrocreditos.operational.repository.LoanInstallmentRepository;
@@ -27,7 +28,7 @@ public class LoanInstallmentService {
 
     private final LoanInstallmentRepository repository;
     private final LoanInstallmentEngineService engine;
-    private final LoanProductService loanProductService;
+    private final UsuryRateService usuryRateService;
     private final UserAdapter userAdapter;
     private final Clock clock;
 
@@ -178,15 +179,15 @@ public class LoanInstallmentService {
 
         LocalDate today = LocalDate.now(clock);
         List<LoanInstallment> installments = repository.findAllByStatus(ObligationStatus.OVERDUE);
-        Map<Long, BigDecimal> dailyPenaltyRates = new HashMap<>();
+        Map<Long, PenaltyRateSchedule> penaltyRatesByProduct = new HashMap<>();
 
         for (LoanInstallment installment : installments){
 
-            Long productId = installment.getLoan().getLoanProduct().getId();
-            BigDecimal dailyPenaltyRate = dailyPenaltyRates.computeIfAbsent(productId,
-                    id -> loanProductService.getById(id).getDailyPenaltyRate());
+            LoanProduct product = installment.getLoan().getLoanProduct();
+            PenaltyRateSchedule penaltyRates = penaltyRatesByProduct.computeIfAbsent(product.getId(),
+                    id -> usuryRateService.penaltyScheduleFor(product));
 
-            installment.accrueArrears(today, dailyPenaltyRate);
+            installment.accrueArrears(today, penaltyRates);
 
         }
 

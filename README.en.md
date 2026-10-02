@@ -25,6 +25,11 @@ Module boundaries are enforced by a Spring Modulith test: `operational` reaches
 
 ## Loan lifecycle
 
+First, an admin registers the usury rate the Superfinanciera certifies every
+month (`POST /admin/usury-rate`) and creates the products
+(`POST /admin/product`). A product is rejected if its ordinary or penalty rate
+exceeds the usury rate in force for its credit modality.
+
 1. An admin verifies the user's identity
    (`PATCH /admin/users/{username}/identity-verification`).
 2. The user browses the product catalog.
@@ -49,12 +54,19 @@ penalty interest and updates the loan status.
 - **Rotation is serialised with a pessimistic lock**, with a grace window so two
   legitimate concurrent requests are not mistaken for an attack. Reusing a token
   outside that window revokes every token the user holds.
-- **Arrears accrue incrementally.** Each day adds
-  `outstanding overdue principal × daily rate` for the new days only; what was
-  already accrued is never recalculated, so a principal payment lowers the base
-  going forward, not retroactively. Running the job twice on the same day adds
-  nothing, and arrears are brought up to date before a payment is allocated.
-  Dates come from the `Clock` in Colombian time (`America/Bogota`).
+- **Arrears accrue incrementally and never exceed the usury rate.** Each new day
+  adds `outstanding overdue principal × daily rate`, where the daily rate is
+  `(1 + EA)^(1/365) − 1` applied to `min(product penalty rate, usury rate in
+  force that day)`. When arrears span a change of month, each stretch uses its
+  own month's rate. What was already accrued is never recalculated, so a
+  principal payment lowers the base going forward, not retroactively. Running
+  the job twice on the same day adds nothing, and arrears are brought up to date
+  before a payment is allocated. Dates come from the `Clock` in Colombian time
+  (`America/Bogota`).
+- **The usury cap depends on the credit modality.** Every product has a credit
+  modality (consumer and ordinary, low amount, productive, popular productive…)
+  because the Superfinanciera certifies a different cap for each one. A rate is
+  in force from the first day of its month until the next one is registered.
 - **German amortization** (constant principal, declining installment). The last
   installment absorbs the rounding remainder so the principal adds up exactly.
 - **A payment does not belong to an installment.** It is split across concepts
@@ -115,8 +127,11 @@ To run the application from your IDE, start the database only with
 - No principal prepayment with re-amortization: overpaying covers upcoming
   installments instead.
 - Surplus is recorded as an allocation but is not yet a usable credit balance.
-- The penalty rate is a fixed daily rate per product: it is not yet derived from
-  an effective annual rate nor capped at the current usury rate.
+- Usury rates are registered by hand: if a new month is missing, the previous
+  rate keeps applying, and correcting a rate that was already used does not
+  recalculate the arrears accrued with it. The migration ships the 2026 rates
+  for consumer and ordinary credit, and September and October for the other
+  modalities.
 
 ## History
 

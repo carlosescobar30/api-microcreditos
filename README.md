@@ -25,6 +25,11 @@ solo alcanza `iam` a través de una interfaz publicada, nunca por sus repositori
 
 ## Flujo del crédito
 
+Antes de todo, un admin registra la tasa de usura que certifica la
+Superfinanciera cada mes (`POST /admin/usury-rate`) y crea los productos
+(`POST /admin/product`). Un producto se rechaza si su interés corriente o su
+mora superan la usura vigente de su modalidad.
+
 1. Un admin verifica la identidad del usuario
    (`PATCH /admin/users/{username}/identity-verification`).
 2. El usuario consulta el catálogo de productos.
@@ -47,12 +52,18 @@ intereses de mora y actualiza el estado del crédito.
 - **La rotación se serializa con un lock pesimista**, con una ventana de gracia
   para que dos peticiones simultáneas legítimas no se confundan con un ataque.
   Reutilizar un token fuera de esa ventana revoca todos los del usuario.
-- **La mora se causa de forma incremental.** Cada día se suma
-  `capital vencido pendiente × tasa diaria` solo por los días nuevos; lo ya
+- **La mora se causa de forma incremental y nunca supera la usura.** Cada día
+  nuevo suma `capital vencido pendiente × tasa diaria`, donde la tasa diaria es
+  `(1 + EA)^(1/365) − 1` sobre `min(mora del producto, usura vigente ese día)`.
+  Si la mora cruza un cambio de mes, cada tramo usa la tasa de su mes. Lo ya
   causado nunca se recalcula, así que un abono a capital reduce la base hacia
   adelante, no hacia atrás. Correr el job dos veces el mismo día no suma nada, y
   antes de imputar un pago la mora se pone al día. Las fechas se toman del
   `Clock` en hora de Colombia (`America/Bogota`).
+- **La usura depende de la modalidad.** Cada producto tiene una modalidad de
+  crédito (consumo y ordinario, bajo monto, productivo, popular productivo…)
+  porque la Superfinanciera certifica un tope distinto para cada una. Una tasa
+  rige desde el primer día de su mes hasta que se registra la siguiente.
 - **Amortización alemana** (capital fijo, cuota decreciente). La última cuota
   absorbe el residuo del redondeo para que el capital cuadre exacto.
 - **Un pago no pertenece a una cuota.** Se reparte entre conceptos y cuotas, y
@@ -112,8 +123,10 @@ Para correr la aplicación desde el IDE, levanta solo la base de datos con
 - Sin abono a capital con re-amortización: pagar de más cubre cuotas futuras.
 - El excedente se registra como imputación pero no es todavía un saldo a favor
   utilizable.
-- La tasa de mora es una tasa diaria fija por producto: todavía no se convierte
-  desde una E.A. ni se limita a la tasa de usura vigente.
+- Las tasas de usura se registran a mano: si falta la de un mes nuevo se sigue
+  aplicando la anterior, y corregir una tasa ya usada no recalcula la mora
+  causada con ella. La migración trae las de 2026 para consumo y ordinario, y
+  septiembre y octubre para las demás modalidades.
 
 ## Historial
 

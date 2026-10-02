@@ -1,7 +1,10 @@
 package com.carlosescobar30.apimicrocreditos.operational.domain;
 
 import com.carlosescobar30.apimicrocreditos.common.domain.EntityBaseClass;
+import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.CreditModality;
 import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.*;
@@ -26,8 +29,12 @@ public class LoanProduct extends EntityBaseClass {
     @Column(precision = 5, scale = 4, nullable = false)
     private BigDecimal interestRate;
 
-    @Column(precision = 5, scale = 4, nullable = false)
-    private BigDecimal dailyPenaltyRate;
+    @Column(name = "penalty_rate_ea", precision = 5, scale = 4, nullable = false)
+    private BigDecimal penaltyRateEa;
+
+    @Column(nullable = false)
+    @Enumerated(value = EnumType.STRING)
+    private CreditModality creditModality;
 
     @Column(nullable = false)
     private Integer installments;
