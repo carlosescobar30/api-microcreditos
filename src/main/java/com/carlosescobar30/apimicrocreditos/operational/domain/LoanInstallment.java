@@ -3,6 +3,7 @@ package com.carlosescobar30.apimicrocreditos.operational.domain;
 import com.carlosescobar30.apimicrocreditos.common.domain.EntityBaseClass;
 import com.carlosescobar30.apimicrocreditos.operational.attribute.RoundingAttributes;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus;
+import com.carlosescobar30.apimicrocreditos.operational.domain.rate.PenaltyRateSchedule;
 import jakarta.persistence.*;
 import lombok.*;
 

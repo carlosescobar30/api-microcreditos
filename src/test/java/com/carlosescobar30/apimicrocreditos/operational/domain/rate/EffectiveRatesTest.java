@@ -1,4 +1,4 @@
-package com.carlosescobar30.apimicrocreditos.operational.domain;
+package com.carlosescobar30.apimicrocreditos.operational.domain.rate;
 
 import org.junit.jupiter.api.Test;
 

@@ -4,12 +4,12 @@ import com.carlosescobar30.apimicrocreditos.common.exception.not_found.ResourceN
 import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.adapter.UserAdapter;
 import com.carlosescobar30.apimicrocreditos.operational.attribute.RoundingAttributes;
-import com.carlosescobar30.apimicrocreditos.operational.domain.EffectiveRates;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanInstallment;
 import com.carlosescobar30.apimicrocreditos.operational.domain.LoanProduct;
-import com.carlosescobar30.apimicrocreditos.operational.domain.PenaltyRateSchedule;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus;
+import com.carlosescobar30.apimicrocreditos.operational.domain.rate.EffectiveRates;
+import com.carlosescobar30.apimicrocreditos.operational.domain.rate.PenaltyRateSchedule;
 import com.carlosescobar30.apimicrocreditos.operational.dto.InstallmentsInfoDTO;
 import com.carlosescobar30.apimicrocreditos.operational.repository.LoanInstallmentRepository;
 import lombok.RequiredArgsConstructor;

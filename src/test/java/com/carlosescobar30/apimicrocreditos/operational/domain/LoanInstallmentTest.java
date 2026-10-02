@@ -2,6 +2,7 @@ package com.carlosescobar30.apimicrocreditos.operational.domain;
 
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.CreditModality;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.ObligationStatus;
+import com.carlosescobar30.apimicrocreditos.operational.domain.rate.PenaltyRateSchedule;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

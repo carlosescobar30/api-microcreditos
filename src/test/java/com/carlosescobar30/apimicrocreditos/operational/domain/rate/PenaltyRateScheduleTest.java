@@ -1,4 +1,4 @@
-package com.carlosescobar30.apimicrocreditos.operational.domain;
+package com.carlosescobar30.apimicrocreditos.operational.domain.rate;
 
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.CreditModality;
 import org.junit.jupiter.api.DisplayName;
