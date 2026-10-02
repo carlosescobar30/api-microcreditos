@@ -4,7 +4,9 @@ import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.operational.dto.PayRequestDTO;
 import com.carlosescobar30.apimicrocreditos.operational.dto.PaymentInfoDTO;
 import com.carlosescobar30.apimicrocreditos.operational.service.PaymentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,12 +25,12 @@ public class PaymentController {
     private final PaymentService paymentService;
 
     @PostMapping("/{loanReference}")
-    public ResponseEntity<PaymentInfoDTO> payOneInstallment (@AuthenticationPrincipal UserDetailsImpl userDetails,
-                                                            @PathVariable("loanReference") UUID loanReference,
-                                                            @RequestBody PayRequestDTO payRequestDTO){
+    public ResponseEntity<PaymentInfoDTO> registerPayment (@AuthenticationPrincipal UserDetailsImpl userDetails,
+                                                          @PathVariable("loanReference") UUID loanReference,
+                                                          @Valid @RequestBody PayRequestDTO payRequestDTO){
 
         PaymentInfoDTO paymentInfoDTO = paymentService.pay(userDetails, loanReference, payRequestDTO);
-        return ResponseEntity.ok(paymentInfoDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(paymentInfoDTO);
 
     }
 

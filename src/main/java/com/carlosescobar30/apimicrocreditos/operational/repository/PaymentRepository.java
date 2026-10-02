@@ -17,5 +17,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     @Query("SELECT p FROM Payment p WHERE p.transactionCode = :transactionCode")
     Optional<Payment> findByTransactionCodeForUpdate(@Param("transactionCode") String transactionCode);
 
+    boolean existsByTransactionCode(String transactionCode);
+
 
 }

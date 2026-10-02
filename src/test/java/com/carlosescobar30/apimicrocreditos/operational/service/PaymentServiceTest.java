@@ -2,8 +2,11 @@ package com.carlosescobar30.apimicrocreditos.operational.service;
 
 import com.carlosescobar30.apimicrocreditos.common.exception.bad_request.ActionNotPermitted;
 import com.carlosescobar30.apimicrocreditos.common.exception.conflict.PaymentAlreadyProcessedException;
+import com.carlosescobar30.apimicrocreditos.common.exception.conflict.TransactionCodeConflictException;
 import com.carlosescobar30.apimicrocreditos.common.exception.not_found.ResourceNotFoundException;
+import com.carlosescobar30.apimicrocreditos.common.identity.UserDetailsImpl;
 import com.carlosescobar30.apimicrocreditos.iam.adapter.UserAdapter;
+import com.carlosescobar30.apimicrocreditos.iam.dto.UserAdapterResponseDTO;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Loan;
 import com.carlosescobar30.apimicrocreditos.operational.domain.Payment;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.FinancialMethod;
@@ -11,6 +14,8 @@ import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.Loan
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.PaymentApplication;
 import com.carlosescobar30.apimicrocreditos.operational.domain.domain_enums.TransactionStatus;
 import com.carlosescobar30.apimicrocreditos.operational.dto.AllocationDetailsDTO;
+import com.carlosescobar30.apimicrocreditos.operational.dto.PayRequestDTO;
+import com.carlosescobar30.apimicrocreditos.operational.dto.PaymentInfoDTO;
 import com.carlosescobar30.apimicrocreditos.operational.dto.PaymentInfoDetailsDTO;
 import com.carlosescobar30.apimicrocreditos.operational.dto.TransactionValidationDTO;
 import com.carlosescobar30.apimicrocreditos.operational.factory.PaymentDTOFactory;
@@ -20,6 +25,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -45,6 +52,9 @@ class PaymentServiceTest {
     private static final Long LOAN_ID = 21L;
     private static final UUID USER_REFERENCE = UUID.randomUUID();
     private static final String TRANSACTION_CODE = "TX-001";
+    private static final Long USER_ID = 7L;
+    private static final UUID LOAN_REFERENCE = UUID.randomUUID();
+    private static final UserDetailsImpl USER = new UserDetailsImpl(USER_ID, "carlos", null, List.of());
 
     @Mock
     private PaymentRepository repository;
@@ -209,6 +219,87 @@ class PaymentServiceTest {
             assertThat(result.status()).isEqualTo(TransactionStatus.DECLINED);
             assertThat(result.details()).isEmpty();
             verifyNoInteractions(paymentAllocationService);
+        }
+    }
+
+    @Nested
+    @DisplayName("Payments registered by the user")
+    class PaymentRequests {
+
+        @ParameterizedTest
+        @EnumSource(value = LoanStatus.class, names = {"ACTIVE", "IN_ARREARS"})
+        void aPaymentIsRegisteredAsPendingWhileTheLoanIsActiveOrInArrears(LoanStatus status) {
+
+            givenLoanOfTheCallerIn(status);
+            when(repository.existsByTransactionCode(TRANSACTION_CODE)).thenReturn(false);
+            when(repository.save(any(Payment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            PaymentInfoDTO payment = paymentService.pay(USER, LOAN_REFERENCE, payRequest(FinancialMethod.NEQUI));
+
+            assertThat(payment.status()).isEqualTo(TransactionStatus.PENDING);
+            assertThat(payment.amount()).isEqualByComparingTo("150000.0000");
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = LoanStatus.class, names = {"PRE_APPROVED", "COMPLETED", "REJECTED"})
+        void aLoanThatIsNotActiveOrInArrearsDoesNotAcceptPayments(LoanStatus status) {
+
+            givenLoanOfTheCallerIn(status);
+
+            assertThatThrownBy(() -> paymentService.pay(USER, LOAN_REFERENCE, payRequest(FinancialMethod.NEQUI)))
+                    .isInstanceOf(ActionNotPermitted.class);
+
+            verify(repository, never()).save(any());
+        }
+
+        @Test
+        void anAdjustmentCannotBeRegisteredByAUser() {
+
+            assertThatThrownBy(() -> paymentService.pay(USER, LOAN_REFERENCE, payRequest(FinancialMethod.ADJUSTMENT)))
+                    .isInstanceOf(ActionNotPermitted.class);
+
+            verifyNoInteractions(loanService, repository);
+        }
+
+        @Test
+        void aTransactionCodeAlreadyRegisteredIsAConflict() {
+
+            givenLoanOfTheCallerIn(LoanStatus.ACTIVE);
+            when(repository.existsByTransactionCode(TRANSACTION_CODE)).thenReturn(true);
+
+            assertThatThrownBy(() -> paymentService.pay(USER, LOAN_REFERENCE, payRequest(FinancialMethod.NEQUI)))
+                    .isInstanceOf(TransactionCodeConflictException.class);
+
+            verify(repository, never()).save(any());
+        }
+
+        @Test
+        void aLoanOfAnotherUserIsNotFound() {
+
+            when(loanService.getOneEntity(LOAN_REFERENCE)).thenReturn(loan);
+            when(userAdapter.userInfo(USER_ID)).thenReturn(UserAdapterResponseDTO.builder()
+                    .userReference(UUID.randomUUID())
+                    .build());
+
+            assertThatThrownBy(() -> paymentService.pay(USER, LOAN_REFERENCE, payRequest(FinancialMethod.NEQUI)))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessage("The loan does not exist");
+
+            verify(repository, never()).save(any());
+        }
+
+        private void givenLoanOfTheCallerIn(LoanStatus status) {
+
+            loan.setStatus(status);
+            when(loanService.getOneEntity(LOAN_REFERENCE)).thenReturn(loan);
+            when(userAdapter.userInfo(USER_ID)).thenReturn(UserAdapterResponseDTO.builder()
+                    .userReference(USER_REFERENCE)
+                    .build());
+        }
+
+        private PayRequestDTO payRequest(FinancialMethod method) {
+
+            return new PayRequestDTO(TRANSACTION_CODE, method, new BigDecimal("150000.0000"), "October installment");
         }
     }
 

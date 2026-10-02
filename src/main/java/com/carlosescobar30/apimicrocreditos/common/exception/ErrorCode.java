@@ -30,6 +30,7 @@ public enum ErrorCode {
     DATA_CONFLICT ("DATA_CONFLICT", HttpStatus.CONFLICT,"The insertion could not be completed due to data conflicts"),
     LOAN_PRODUCT_ALREADY_EXISTS("LOAN_PRODUCT_ALREADY_EXISTS", HttpStatus.CONFLICT, "A loan product with this name already exists"),
     USURY_RATE_ALREADY_EXISTS("USURY_RATE_ALREADY_EXISTS", HttpStatus.CONFLICT, "A usury rate is already registered for this modality and month"),
+    TRANSACTION_CODE_ALREADY_EXISTS("TRANSACTION_CODE_ALREADY_EXISTS", HttpStatus.CONFLICT, "A payment with this transaction code is already registered"),
     PAYMENT_ALREADY_PROCESSED("PAYMENT_ALREADY_PROCESSED", HttpStatus.CONFLICT, "The payment has already been processed and its status cannot change"),
 
     //INTERNAL_SERVER_ERROR 500

@@ -81,8 +81,8 @@ status TEXT DEFAULT 'PENDING' NOT NULL,
 applied BOOlEAN DEFAULT false NOT NULL,
 created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
 last_update TIMESTAMPTZ DEFAULT now() NOT NULL,
-CONSTRAINT uq_transaction_code_per_financial_method
-UNIQUE (transaction_code, financial_method),
+CONSTRAINT uq_transaction_code
+UNIQUE (transaction_code),
 CONSTRAINT chk_valid_status
 CHECK (status IN
 ('PENDING','APPROVED',
